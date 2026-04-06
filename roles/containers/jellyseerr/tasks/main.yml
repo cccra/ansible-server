@@ -1,7 +1,7 @@
-- name: Make sure the jellyseerr container is created and running
+- name: Make sure the seerr container is created and running
   docker_container:
     name: "jellyseerr"
-    image: "fallenbagel/jellyseerr:latest"
+    image: "ghcr.io/seerr-team/seerr:latest"
     pull: yes
     networks:
       - name: app_network
@@ -15,5 +15,5 @@
       "TZ": "{{ timezone }}"
     volumes:
       - "/etc/localtime:/etc/localtime"
-      - "{{ docker_dir }}/jellyseerr:/app/config"
+      - "{{ docker_dir }}/seerr:/app/config"
     restart_policy: unless-stopped

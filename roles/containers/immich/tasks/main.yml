@@ -34,8 +34,8 @@
       - "{{ docker_dir }}/immich/config:/config"
       # - "{{ docker_dir }}/immich/photos:/photos"
       - "{{ mergerfs_root }}/Immich/photos:/photos"
-      - "{{ mergerfs_root }}/Nextcloud/{{ username }}/files/Photos:/import:ro"
-      - "{{ mergerfs_root }}/Nextcloud/{{ username }}/files/Media:/imports/Media:ro"
+      - "{{ mergerfs_root }}/Nextcloud/{{ username }}/files/Photos:/import/Photos:ro"
+      - "{{ mergerfs_root }}/Nextcloud/{{ username }}/files/Media:/import/Media:ro"
     restart_policy: unless-stopped
 
 - name: Make sure the Immich Redis container is created and running
@@ -58,4 +58,6 @@
       "POSTGRES_USER": "postgres"
       "POSTGRES_PASSWORD": "postgres"
       "POSTGRES_DB": "immich"
+    volumes:
+      - "{{ docker_dir }}/immich/db:/var/lib/postgresql/data"
     restart_policy: unless-stopped

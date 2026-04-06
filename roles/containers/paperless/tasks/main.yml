@@ -1,17 +1,57 @@
+---
+- name: Create a paperless network
+  docker_network:
+    name: paperless_network
+
+- name: Make sure the Paperless MariaDB container is created and running
+  docker_container:
+    name: "paperless-mariadb"
+    image: "mariadb:latest"
+    pull: yes
+    networks:
+      - name: paperless_network
+    state: 'started'
+    env:
+      "TZ": "{{ timezone }}"
+      "MARIADB_HOST": "paperless"
+      "MARIADB_ROOT_PASSWORD": "paperless"
+      "MARIADB_DATABASE": "paperless"
+      "MARIADB_USER": "paperless"
+      "MARIADB_PASSWORD": "paperless"
+    volumes:
+      - "{{ docker_dir }}/paperless/mariadb/mysql:/var/lib/mysql"
+    restart_policy: unless-stopped
+
+- name: Make sure the Paperless Redis container is created and running
+  docker_container:
+    name: "paperless-redis"
+    image: redis:latest
+    networks:
+      - name: paperless_network
+    pull: yes
+    restart_policy: unless-stopped
+
 - name: Create Paperless container
   docker_container:
     name: paperless
-    image: lscr.io/linuxserver/paperless-ngx:latest
+    image: paperlessngx/paperless-ngx:latest
     pull: true
     networks:
       - name: app_network
+      - name: paperless_network
     volumes:
       - "{{ docker_dir }}/paperless/config:/config"
       - "{{ docker_dir }}/paperless/data:/data"
       - '{{ mergerfs_root }}/Nextcloud/{{ username }}/files/Documents/DOCUMENTS:/consume'
     env:
-      PUID: "1000"
-      PGID: "1000"
-      PAPERLESS_CONSUMPTION_DIR: "/consume"
-      PAPERLESS_URL: "https://paperless.gillick.xyz"
+      "PUID": "1000"
+      "PGID": "1000"
+      "PAPERLESS_CONSUMPTION_DIR": "/consume"
+      "PAPERLESS_URL": "https://paperless.gillick.xyz"
+      "PAPERLESS_DBENGINE": "mariadb"
+      "PAPERLESS_DBHOST": "paperless-mariadb"
+      "PAPERLESS_DBPORT": "3306"
+      "PAPERLESS_DBUSER": "paperless"
+      "PAPERLESS_DBPASS": "paperless"
+      "PAPERLESS_REDIS": "redis://paperless-redis:6379"
     restart_policy: unless-stopped

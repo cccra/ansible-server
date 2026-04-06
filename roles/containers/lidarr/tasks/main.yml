@@ -7,6 +7,9 @@
     networks:
       - name: app_network
     state: 'started'
+    dns_servers:
+      - 1.1.1.1
+      - 8.8.8.8
     ports:
       - "8686:8686"
     env:
@@ -15,9 +18,7 @@
       "TZ": "{{ timezone }}"
     volumes:
       - "/etc/localtime:/etc/localtime:ro"
-      - "{{ docker_dir }}/lidarr/config:/config"
-      - "{{ docker_dir }}/lidarr/custom-services.d:/custom-services.d"
-      - "{{ docker_dir }}/lidarr/custom-cont-init.d:/custom-cont-init.d"
+      - "{{ docker_dir }}/lidarr:/config"
       - "{{ mergerfs_root }}:/tank"
     restart_policy: unless-stopped
 

@@ -203,6 +203,13 @@
             - containers
         when: enable_radarr | default(False)
 
+      - role: containers/lazylibrarian
+        become: no
+        tags:
+            - lazylibrarian
+            - containers
+        when: enable_lazylibrarian | default(False)
+
       - role: containers/lidarr
         become: no
         tags:
@@ -230,6 +237,13 @@
             - navidrome
             - containers
         when: enable_navidrome | default(False)
+
+      - role: containers/audiobookshelf
+        become: no
+        tags:
+            - audiobookshelf
+            - containers
+        when: enable_audiobookshelf | default(False)
 
       - role: containers/navidrome
         become: no
