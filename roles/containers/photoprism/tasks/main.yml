@@ -1,16 +1,23 @@
 ---
 - name: Create a photoprism network
-  docker_network:
+  community.docker.docker_network:
     name: photoprism_network
 
 - name: Make sure the PhotoPrism MariaDB container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "photoprism-mariadb"
     image: "mariadb:latest"
-    pull: yes
+    pull: always
     networks:
       - name: photoprism_network
-    command: "mariadbd --transaction-isolation=READ-COMMITTED --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max-connections=512 --innodb-rollback-on-timeout=OFF --innodb-lock-wait-timeout=120"
+    command: >-
+      mariadbd
+      --transaction-isolation=READ-COMMITTED
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max-connections=512
+      --innodb-rollback-on-timeout=OFF
+      --innodb-lock-wait-timeout=120
     state: 'started'
     env:
       "TZ": "{{ timezone }}"
@@ -24,13 +31,13 @@
 
 
 - name: Make sure the Photoprism container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "photoprism"
     image: photoprism/photoprism:latest
     networks:
       - name: photoprism_network
       - name: app_network
-    pull: yes
+    pull: always
     security_opts:
       - seccomp:unconfined
       - apparmor:unconfined
@@ -69,7 +76,7 @@
     restart_policy: unless-stopped
 
 - name: Schedule a library scan at 1 AM every day
-  cron:
+  ansible.builtin.cron:
     name: Scan the PhotoPrism library
     hour: "1"
     minute: "0"

@@ -1,6 +1,6 @@
 ---
 - name: List the current configs
-  find:
+  ansible.builtin.find:
     paths: /etc/netplan
     file_type: file
     excludes:
@@ -8,15 +8,21 @@
   register: previous_config
 
 - name: Install the netplan config
-  copy:
+  ansible.builtin.copy:
     content: '{{ netplan_config }}'
     dest: '/etc/netplan/00-ansible-managed.yaml'
     owner: root
     group: root
-    mode: 0644
-  notify: netplan apply
+    mode: "0600"
+  notify: Netplan apply
 
+# Without `state: absent` this defaulted to `state: file`, which only asserts
+# attributes -- the stale configs were never actually removed.
 - name: Delete the irrelevant configs
-  file:
+  ansible.builtin.file:
     path: "{{ item.path }}"
-  with_items: "{{ previous_config['files'] }}"
+    state: absent
+  loop: "{{ previous_config['files'] }}"
+  loop_control:
+    label: "{{ item.path }}"
+  notify: Netplan apply

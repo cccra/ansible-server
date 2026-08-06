@@ -2,14 +2,12 @@
 docker_deps:
   - 'apt-transport-https'
   - 'ca-certificates'
-  - 'gnupg2'
   - 'curl'
-  - 'software-properties-common'
+  - 'gnupg'
   - 'python3-pip'
-  - 'virtualenv'
-  - 'python3-setuptools'
-  - 'docker-compose'
 
+# Plain Debian installs Docker from the distro repos (the docker-ce apt repo is
+# only wired up for Ubuntu above).
 docker_packages:
   - 'docker.io'
-  - 'docker-registry'
+  - 'containerd'

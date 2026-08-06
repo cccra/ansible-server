@@ -1,34 +1,68 @@
 ---
-- include_tasks: repo_arch.yml
+- name: Resolve the apt repository architecture
+  ansible.builtin.include_tasks: repo_arch.yml
 
-- name: Add Crowdsec GPG apt Key
-  become: yes
-  shell:
-    cmd: "curl -sL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --batch --yes --dearmour -o /etc/apt/trusted.gpg.d/crowdsec.gpg"
+- name: Ensure the apt keyring directory exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
 
-- name: Add Crowdsec Repository
-  apt_repository:
-    repo: "deb [arch={{ repo_arch }} signed-by=/etc/apt/trusted.gpg.d/crowdsec.gpg] https://packagecloud.io/crowdsec/crowdsec/{{ ansible_facts['distribution'] | lower }} {{ ansible_lsb['codename'] }} main"
+- name: Add the CrowdSec apt signing key
+  become: true
+  ansible.builtin.get_url:
+    url: https://packagecloud.io/crowdsec/crowdsec/gpgkey
+    dest: /etc/apt/keyrings/crowdsec.asc
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Add the CrowdSec apt repository
+  become: true
+  ansible.builtin.deb822_repository:
+    name: crowdsec
+    types: [deb]
+    uris: "https://packagecloud.io/crowdsec/crowdsec/{{ ansible_facts['distribution'] | lower }}"
+    suites: ["{{ ansible_facts['distribution_release'] }}"]
+    components: [main]
+    architectures: ["{{ repo_arch }}"]
+    signed_by: /etc/apt/keyrings/crowdsec.asc
+    enabled: true
     state: present
-    filename: crowdsec
 
-- name: Update apt and install Crowdsec
-  apt:
-    update_cache: yes
+- name: Remove the superseded CrowdSec apt source and key
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/apt/sources.list.d/crowdsec.list
+    - /etc/apt/trusted.gpg.d/crowdsec.gpg
+
+- name: Update apt and install CrowdSec
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
     name:
       - crowdsec
       - crowdsec-firewall-bouncer-iptables
-    state: latest
+    state: present
 
-- name: cscli hub update
-  command:
+- name: Update the CrowdSec hub index
+  become: true
+  ansible.builtin.command:
     cmd: cscli hub update
   changed_when: false
 
+# Already running under become, so the inner `sudo` was redundant.
 - name: Install the necessary collections
-  command:
-    cmd: "sudo cscli collections install crowdsecurity/{{ item }}"
-  with_items:
+  become: true
+  ansible.builtin.command:
+    cmd: "cscli collections install crowdsecurity/{{ item }}"
+  loop:
     - nginx
     - sshd
     - linux
@@ -37,18 +71,20 @@
   changed_when: "'overwrite' not in collections_install_result.stderr"
 
 - name: Increase ban time
-  replace:
+  become: true
+  ansible.builtin.replace:
     path: "/etc/crowdsec/profiles.yaml"
     regexp: 'duration: [0-9]h'
     replace: 'duration: 999h'
   notify:
     - Restart crowdsec
 
-- name: Start and enable Crowdsec services
-  service:
+- name: Start and enable CrowdSec services
+  become: true
+  ansible.builtin.service:
     name: "{{ item }}"
     state: started
     enabled: true
-  with_items:
-      - crowdsec
-      - crowdsec-firewall-bouncer
+  loop:
+    - crowdsec
+    - crowdsec-firewall-bouncer

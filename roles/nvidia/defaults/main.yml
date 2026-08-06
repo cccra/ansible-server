@@ -1,0 +1,10 @@
+---
+# Host-side NVIDIA setup shared by every service that requests the NVIDIA runtime
+# (jellyfin, immich, tdarr, openreader).
+
+# The driver branch to install. 535 is what this playbook has always used; bump it
+# deliberately, since a driver change generally requires a reboot.
+nvidia_driver_package: nvidia-driver-535-server
+
+# Set to false to skip the automatic reboot after a driver/kernel update.
+nvidia_allow_reboot: true

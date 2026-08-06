@@ -1,6 +1,6 @@
 ---
 - name: Create a login user
-  user:
+  ansible.builtin.user:
     name: "{{ username }}"
     password: "{{ password | password_hash }}"
     groups:
@@ -10,36 +10,36 @@
     append: true
     update_password: on_create
 
-- name: Ensure group "{{ username }}" exists
-  group:
+- name: Ensure the login group exists
+  ansible.builtin.group:
     name: "{{ username }}"
     state: present
 
 - name: Ensure group "sambashare" exists
   when: enable_samba | default(False)
-  group:
+  ansible.builtin.group:
     name: "sambashare"
     state: present
 
 - name: Append the samba group
   when: enable_samba | default(False)
-  user:
+  ansible.builtin.user:
     name: "{{ username }}"
     groups:
       - sambashare
     append: true
 
 - name: Chmod the user home directory
-  file:
+  ansible.builtin.file:
     path: "/home/{{ username }}"
     state: directory
-    mode: 0755
+    mode: "0755"
     owner: "{{ username }}"
     group: "{{ username }}"
-    recurse: no
+    recurse: false
 
 - name: Allow 'sudo' group to have passwordless sudo
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/sudoers
     state: present
     regexp: '^%sudo'
@@ -47,22 +47,22 @@
     validate: '/usr/sbin/visudo -cf %s'
 
 - name: Copy the public SSH key
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ username }}"
     state: present
     key: "{{ ssh_public_key }}"
   notify:
-    - remove default user
+    - Remove default user
 
 - name: Set the default shell
-  user:
+  ansible.builtin.user:
     name: "{{ username }}"
     shell: "{{ shell }}"
 
 - name: Suppress login messages
-  file:
-    name: /home/{{ username }}/.hushlogin
-    mode: 0644
+  ansible.builtin.file:
+    path: /home/{{ username }}/.hushlogin
+    mode: "0644"
     state: touch
     owner: "{{ username }}"
     group: "{{ username }}"
@@ -70,15 +70,14 @@
     access_time: preserve
 
 - name: Disable cron e-mail notifications
-  cron:
+  ansible.builtin.cron:
     name: MAILTO
     user: "{{ username }}"
-    env: yes
+    env: true
     job: ""
 
-
 - name: Create additional users (no login)
-  user:
+  ansible.builtin.user:
     name: "{{ item.name }}"
     groups: "{{ item.groups }}"
     password: "{{ item.password | password_hash }}"
@@ -86,6 +85,6 @@
     state: present
     append: true
     shell: /sbin/nologin
-  with_items: "{{ additional_users }}"
+  loop: "{{ additional_users }}"
   when: additional_users is defined
   no_log: true

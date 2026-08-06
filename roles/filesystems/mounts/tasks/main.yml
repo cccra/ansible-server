@@ -1,32 +1,33 @@
+---
 - name: Mount the data drives
-  mount:
+  ansible.posix.mount:
     name: "{{ item.path }}"
     src: "{{ item.src }}"
     fstype: xfs
     state: mounted
     passno: "2"
-  with_items: "{{ disks }}"
+  loop: "{{ disks }}"
   when: disks[0] is defined
 
 - name: Mount the cache drives
-  mount:
+  ansible.posix.mount:
     name: "{{ item.path }}"
     src: "{{ item.src }}"
     fstype: ext4
     state: mounted
     opts: defaults,discard
     passno: "2"
-  with_items: "{{ cache_disks }}"
+  loop: "{{ cache_disks }}"
   when: cache_disks[0] is defined
 
 - name: Mount the parity drives
-  mount:
+  ansible.posix.mount:
     name: "{{ item.path }}"
     src: "{{ item.src }}"
     fstype: xfs
     state: mounted
     passno: "2"
-  with_items: "{{ parity_disks }}"
+  loop: "{{ parity_disks }}"
   when: parity_disks[0] is defined
 
 # - name: Mount the mergerfs cached array
@@ -39,7 +40,7 @@
 #   when: disks[0] is defined
 
 - name: Mount the mergerfs array
-  mount:
+  ansible.posix.mount:
     name: "{{ mergerfs_root }}"
     src: /mnt/data*
     opts: category.create=lfs,defaults,allow_other,moveonenospc=1,minfreespace=50G,fsname=mergerfs,uid=1000,gid=1000
@@ -48,7 +49,7 @@
   when: disks[0] is defined
 
 - name: Mount the mergerfs cache only array
-  mount:
+  ansible.posix.mount:
     name: "{{ cache_root }}"
     src: /mnt/cache*
     opts: defaults,allow_other,fsname=mergerfs_cache,category.create=mfs

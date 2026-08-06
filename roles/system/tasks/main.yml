@@ -1,11 +1,20 @@
 ---
-- include_tasks: essential.yml
-  # - include_tasks: yeet_snaps.yml
-- include_tasks: user.yml
-- include_tasks: dotfiles.yml
+- name: Configure essential system settings
+  ansible.builtin.include_tasks: essential.yml
 
-- include_tasks: powersaving.yml
-  when: enable_powersaving | default(False)
+- name: Remove snapd
+  ansible.builtin.include_tasks: yeet_snaps.yml
 
-- include_tasks: netplan.yml
+- name: Configure the login user
+  ansible.builtin.include_tasks: user.yml
+
+- name: Install the dotfiles
+  ansible.builtin.include_tasks: dotfiles.yml
+
+- name: Configure power saving
+  ansible.builtin.include_tasks: powersaving.yml
+  when: enable_powersaving | default(false)
+
+- name: Configure netplan
+  ansible.builtin.include_tasks: netplan.yml
   when: netplan_config is defined

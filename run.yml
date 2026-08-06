@@ -2,348 +2,382 @@
 #
 # Tasks and roles for all hosts
 #
-- hosts: all
-  gather_facts: no
+- name: Probe the SSH port before configuring anything
+  hosts: all
+  gather_facts: false
 
   pre_tasks:
-      - import_tasks: tasks/ssh_juggle_port.yml
-        tags:
-            - port
+    - name: Determine which SSH port and credentials work
+      ansible.builtin.import_tasks: tasks/ssh_juggle_port.yml
+      tags:
+        - port
 
-- hosts: all
-  become: yes
+- name: Configure the NAS host and its services
+  hosts: all
+  become: true
 
   roles:
-      #
-      # Basics
-      #
-      - role: system
-        tags:
-            - system
+    #
+    # Basics
+    #
+    - role: system
+      tags:
+        - system
 
-      - role: neovim
-        tags:
-            - neovim
+    - role: neovim
+      tags:
+        - neovim
 
-      - role: geerlingguy.security
-        tags:
-            - security
+    - role: geerlingguy.security
+      tags:
+        - security
 
-      # Filesystems
-      #
-      - role: filesystems/mergerfs
-        become: yes
-        tags:
-            - mergerfs
-        when: enable_nas_stuff | default(False)
+    #
+    # Filesystems
+    #
+    - role: filesystems/mergerfs
+      become: true
+      tags:
+        - mergerfs
+      when: enable_nas_stuff | default(false)
 
-      - role: filesystems/mounts
-        become: yes
-        tags:
-            - mounts
-        when: enable_nas_stuff | default(False)
+    - role: filesystems/mounts
+      become: true
+      tags:
+        - mounts
+      when: enable_nas_stuff | default(false)
 
-      - role: docker
-        tags:
-            - docker
+    - role: docker
+      tags:
+        - docker
 
-      - role: chriswayg.msmtp-mailer
-        tags:
-            - msmtp
+    # Host-side GPU setup (driver + container toolkit). Required by every service
+    # that requests the NVIDIA runtime via `device_requests`, not just Jellyfin.
+    - role: nvidia
+      become: true
+      tags:
+        - nvidia
+      when: >-
+        enable_nvidia | default(
+          enable_jellyfin | default(false)
+          or enable_immich | default(false)
+          or enable_tdarr | default(false)
+          or enable_openreader | default(false)
+        )
 
-      - role: oefenweb.dns
-        tags:
-            - dns
+    - role: chriswayg.msmtp-mailer
+      tags:
+        - msmtp
 
-      - role: geerlingguy.ntp
-        tags:
-            - ntp
+    - role: oefenweb.dns
+      tags:
+        - dns
 
-      #
-      # Security
-      #
-      - role: security/fail2ban
-        tags:
-            - fail2ban
-        when: enable_fail2ban | default(False)
+    - role: geerlingguy.ntp
+      tags:
+        - ntp
 
-      - role: security/iptables
-        tags:
-            - iptables
-        when: enable_iptables | default(False)
+    #
+    # Security
+    #
+    - role: security/fail2ban
+      tags:
+        - fail2ban
+      when: enable_fail2ban | default(false)
 
-      - role: security/crowdsec
-        tags:
-            - crowdsec
-        when: enable_crowdsec | default(False)
+    - role: security/iptables
+      tags:
+        - iptables
+      when: enable_iptables | default(false)
 
-      - role: network/nginx-proxy-manager
-        become: no
-        tags:
-            - nginx-proxy-manager
-            - containers
-        when: enable_nginxproxymanager | default(False)
+    - role: security/crowdsec
+      tags:
+        - crowdsec
+      when: enable_crowdsec | default(false)
 
-      - role: network/cloudflare-ddns
-        become: no
-        tags:
-            - cloudflare-ddns
-            - containers
-        when: enable_cloudflare_ddns | default(False)
+    - role: network/nginx-proxy-manager
+      become: false
+      tags:
+        - nginx-proxy-manager
+        - containers
+      when: enable_nginxproxymanager | default(false)
 
-      #
-      - role: filesystems/hd-idle
-        become: yes
-        tags:
-            - hd-idle
-        when: enable_nas_stuff | default(False)
+    - role: network/cloudflare-ddns
+      become: false
+      tags:
+        - cloudflare-ddns
+        - containers
+      when: enable_cloudflare_ddns | default(false)
 
-      - role: stuvusit.smartd
-        become: yes
-        tags:
-            - smartd
-        when: enable_nas_stuff | default(False)
+    - role: containers/adguard
+      become: false
+      tags:
+        - adguard
+        - containers
+      when: enable_adguard | default(false)
 
-      - role: ironicbadger.snapraid
-        become: yes
-        tags:
-            - snapraid
-        when: enable_nas_stuff | default(False)
+    #
+    # NAS / storage
+    #
+    - role: filesystems/hd-idle
+      become: true
+      tags:
+        - hd-idle
+      when: enable_nas_stuff | default(false)
 
-      #
-      # homarr
-      #
-      - role: containers/homarr
-        become: no
-        tags:
-            - homarr
-            - containers
-        when: enable_homarr | default(False)
+    - role: stuvusit.smartd
+      become: true
+      tags:
+        - smartd
+      when: enable_nas_stuff | default(false)
 
-      #
-      # System
-      #
-      - role: containers/prowlarr
-        become: no
-        tags:
-            - prowlarr
-            - containers
-        when: enable_prowlarr | default(False)
+    - role: ironicbadger.snapraid
+      become: true
+      tags:
+        - snapraid
+      when: enable_nas_stuff | default(false)
 
-      - role: containers/flaresolverr
-        become: no
-        tags:
-          - flaresolverr
-          - containers
-        when: enable_flaresolverr | default(False)
+    #
+    # Dashboard
+    #
+    - role: containers/homarr
+      become: false
+      tags:
+        - homarr
+        - containers
+      when: enable_homarr | default(false)
 
-      - role: containers/unpackerr
-        become: no
-        tags:
-            - unpackerr
-            - containers
-        when: enable_unpackerr | default(False)
+    #
+    # System
+    #
+    - role: containers/prowlarr
+      become: false
+      tags:
+        - prowlarr
+        - containers
+      when: enable_prowlarr | default(false)
 
-      - role: containers/bazarr
-        become: no
-        tags:
-            - bazarr
-            - containers
-        when: enable_bazarr | default(False)
+    - role: containers/flaresolverr
+      become: false
+      tags:
+        - flaresolverr
+        - containers
+      when: enable_flaresolverr | default(false)
 
-      - role: containers/tdarr
-        become: no
-        tags:
-            - tdarr
-            - containers
-        when: enable_tdarr | default(False)
+    - role: containers/unpackerr
+      become: false
+      tags:
+        - unpackerr
+        - containers
+      when: enable_unpackerr | default(false)
 
-      - role: containers/watchtower
-        become: no
-        tags:
-            - watchtower
-            - containers
+    - role: containers/bazarr
+      become: false
+      tags:
+        - bazarr
+        - containers
+      when: enable_bazarr | default(false)
 
-      - role: containers/adguard
-        become: no
-        tags:
-          - adguard
-          - containers
-        when: enable_adguard | default(False)
+    - role: containers/tdarr
+      become: false
+      tags:
+        - tdarr
+        - containers
+      when: enable_tdarr | default(false)
 
-      - role: containers/dashdot
-        become: no
-        tags:
-            - dashdot
-            - containers
-        when: enable_dashdot | default(False)
+    - role: containers/watchtower
+      become: false
+      tags:
+        - watchtower
+        - containers
+      when: enable_watchtower | default(false)
 
-      #
-      # Media
-      #
+    - role: containers/dashdot
+      become: false
+      tags:
+        - dashdot
+        - containers
+      when: enable_dashdot | default(false)
 
-      - role: containers/qbittorrent
-        become: no
-        tags:
-            - qbittorrent
-            - containers
-        when: enable_qbittorrent | default(False)
+    #
+    # Media
+    #
+    - role: containers/qbittorrent
+      become: false
+      tags:
+        - qbittorrent
+        - containers
+      when: enable_qbittorrent | default(false)
 
-      - role: containers/sonarr
-        become: no
-        tags:
-            - sonarr
-            - containers
-        when: enable_sonarr | default(False)
+    - role: containers/sonarr
+      become: false
+      tags:
+        - sonarr
+        - containers
+      when: enable_sonarr | default(false)
 
-      - role: containers/radarr
-        become: no
-        tags:
-            - radarr
-            - containers
-        when: enable_radarr | default(False)
+    - role: containers/radarr
+      become: false
+      tags:
+        - radarr
+        - containers
+      when: enable_radarr | default(false)
 
-      - role: containers/lazylibrarian
-        become: no
-        tags:
-            - lazylibrarian
-            - containers
-        when: enable_lazylibrarian | default(False)
+    - role: containers/lazylibrarian
+      become: false
+      tags:
+        - lazylibrarian
+        - containers
+      when: enable_lazylibrarian | default(false)
 
-      - role: containers/lidarr
-        become: no
-        tags:
-            - lidarr
-            - containers
-        when: enable_lidarr | default(False)
+    - role: containers/lidarr
+      become: false
+      tags:
+        - lidarr
+        - containers
+      when: enable_lidarr | default(false)
 
-      - role: containers/jellyfin
-        become: no
-        tags:
-            - jellyfin
-            - containers
-        when: enable_jellyfin | default(False)
+    - role: containers/jellyfin
+      become: false
+      tags:
+        - jellyfin
+        - containers
+      when: enable_jellyfin | default(false)
 
-      - role: containers/wizarr
-        become: no
-        tags:
-            - wizarr
-            - containers
-        when: enable_wizarr | default(False)
+    - role: containers/wizarr
+      become: false
+      tags:
+        - wizarr
+        - containers
+      when: enable_wizarr | default(false)
 
-      - role: containers/navidrome
-        become: no
-        tags:
-            - navidrome
-            - containers
-        when: enable_navidrome | default(False)
+    - role: containers/navidrome
+      become: false
+      tags:
+        - navidrome
+        - containers
+      when: enable_navidrome | default(false)
 
-      - role: containers/audiobookshelf
-        become: no
-        tags:
-            - audiobookshelf
-            - containers
-        when: enable_audiobookshelf | default(False)
+    - role: containers/audiobookshelf
+      become: false
+      tags:
+        - audiobookshelf
+        - containers
+      when: enable_audiobookshelf | default(false)
 
-      - role: containers/navidrome
-        become: no
-        tags:
-            - navidrome
-            - containers
-        when: enable_navidrome | default(False)
+    - role: containers/jellyseerr
+      become: false
+      tags:
+        - jellyseerr
+        - containers
+      when: enable_jellyseerr | default(false)
 
-      - role: containers/jellyseerr
-        become: no
-        tags:
-            - jellyseerr
-            - containers
-        when: enable_jellyseerr | default(False)
+    #
+    # Services
+    #
+    - role: containers/photoprism
+      become: false
+      tags:
+        - photoprism
+        - containers
+      when: enable_photoprism | default(false)
 
-      #
-      # Services
-      #
-      - role: containers/photoprism
-        become: no
-        tags:
-            - photoprism
-            - containers
-        when: enable_photoprism | default(False)
+    - role: containers/immich
+      become: false
+      tags:
+        - immich
+        - containers
+      when: enable_immich | default(false)
 
-      - role: containers/immich
-        become: no
-        tags:
-            - immich
-            - containers
-        when: enable_immich | default(False)
+    - role: containers/gitea
+      become: false
+      tags:
+        - gitea
+        - containers
+      when: enable_gitea | default(false)
 
-      - role: containers/gitea
-        become: no
-        tags:
-            - gitea
-            - containers
-        when: enable_gitea | default(False)
+    - role: containers/grocy
+      become: false
+      tags:
+        - grocy
+        - containers
+      when: enable_grocy | default(false)
 
-      - role: containers/grocy
-        become: no
-        tags:
-            - grocy
-            - containers
-        when: enable_grocy | default(False)
+    - role: containers/tandoor
+      become: false
+      tags:
+        - tandoor
+        - containers
+      when: enable_tandoor | default(false)
 
-      - role: containers/linkding
-        become: no
-        tags:
-            - linkding
-            - containers
-        when: enable_linkding | default(False)
+    - role: containers/linkding
+      become: false
+      tags:
+        - linkding
+        - containers
+      when: enable_linkding | default(false)
 
-      - role: containers/invoiceninja
-        become: no
-        tags:
-            - invoiceninja
-            - containers
-        when: enable_invoiceninja | default(False)
+    - role: containers/wallabag
+      become: false
+      tags:
+        - wallabag
+        - containers
+      when: enable_wallabag | default(false)
 
-      - role: containers/paperless
-        become: no
-        tags:
-            - paperless
-            - containers
-        when: enable_paperless | default(False)
+    - role: containers/openreader
+      become: false
+      tags:
+        - openreader
+        - containers
+      when: enable_openreader | default(false)
 
-      - role: containers/nextcloud
-        become: no
-        tags:
-            - nextcloud
-            - containers
-        when: enable_nextcloud | default(False)
+    - role: containers/invoiceninja
+      become: false
+      tags:
+        - invoiceninja
+        - containers
+      when: enable_invoiceninja | default(false)
 
-      - role: containers/vaultwarden
-        become: no
-        tags:
-            - vaultwarden
-            - containers
-        when: enable_vaultwarden | default(False)
+    - role: containers/paperless
+      become: false
+      tags:
+        - paperless
+        - containers
+      when: enable_paperless | default(false)
 
-      - role: containers/gramps
-        become: no
-        tags:
-            - gramps
-            - containers
-        when: enable_gramps | default(False)
+    - role: containers/nextcloud
+      become: false
+      tags:
+        - nextcloud
+        - containers
+      when: enable_nextcloud | default(false)
 
-      - role: containers/wireguard
-        become: no
-        tags:
-            - wireguard
-            - containers
-        when: enable_wireguard | default(False)
+    - role: containers/vaultwarden
+      become: false
+      tags:
+        - vaultwarden
+        - containers
+      when: enable_vaultwarden | default(false)
 
-      # #
-      # # Samba
-      # #
-      # - role: bertvv.samba
-      #   become: yes
-      #   tags:
-      #       - samba
-      #   when: enable_nas_stuff | default(False)
+    - role: containers/gramps
+      become: false
+      tags:
+        - gramps
+        - containers
+      when: enable_gramps | default(false)
+
+    - role: containers/wireguard
+      become: false
+      tags:
+        - wireguard
+        - containers
+      when: enable_wireguard | default(false)
+
+# Samba is disabled. To enable it, uncomment the role block below and set
+# enable_samba: true in your group_vars.
+#
+#     - role: bertvv.samba
+#       become: true
+#       tags:
+#         - samba
+#       when: enable_samba | default(false)

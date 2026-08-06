@@ -1,7 +1,8 @@
 ---
-- hosts: all
-  gather_facts: yes
-  become: no
+- name: Build and upload an autoinstall Ubuntu ISO
+  hosts: all
+  gather_facts: true
+  become: false
 
   roles:
     - role: notthebee.ubuntu_autoinstall

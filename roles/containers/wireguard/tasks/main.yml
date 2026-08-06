@@ -1,13 +1,13 @@
 ---
 - name: Create a wireguard network
-  docker_network:
+  community.docker.docker_network:
     name: wireguard_network
 
 - name: Make sure wireguard container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: 'wireguard'
     image: 'linuxserver/wireguard:latest'
-    pull: yes
+    pull: always
     networks:
       - name: wireguard_network
     capabilities:
@@ -23,10 +23,10 @@
     restart_policy: unless-stopped
 
 - name: Make sure wireguard-ui container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: 'wireguard-ui'
     image: 'ngoduykhanh/wireguard-ui:latest'
-    pull: yes
+    pull: always
     networks:
       - name: wireguard_network
       - name: app_network

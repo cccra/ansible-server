@@ -2,15 +2,17 @@
 docker_deps:
   - 'apt-transport-https'
   - 'ca-certificates'
-  - 'gnupg2'
   - 'curl'
-  - 'software-properties-common'
+  - 'gnupg'
+  # Needed by the "Switch to pip3" alternatives task below.
   - 'python3-pip'
-  - 'virtualenv'
-  - 'python3-setuptools'
-  - 'docker-compose'
 
+# The Compose v1 Python package (docker-compose) is unmaintained and EOL; the
+# compose-plugin is the supported replacement. docker-registry was a registry
+# *server* and is not needed to run containers.
 docker_packages:
   - 'docker-ce'
-  - 'docker-compose'
-  - 'cgroupfs-mount'
+  - 'docker-ce-cli'
+  - 'containerd.io'
+  - 'docker-buildx-plugin'
+  - 'docker-compose-plugin'

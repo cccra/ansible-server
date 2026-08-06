@@ -1,13 +1,13 @@
 ---
 - name: Create an invoiceninja network
-  docker_network:
+  community.docker.docker_network:
     name: invoiceninja_network
 
 - name: Create MySQL container for invoiceninja
-  docker_container:
+  community.docker.docker_container:
     name: "invoiceninja-mysql"
     image: mysql:5.7
-    pull: true
+    pull: always
     networks:
       - name: invoiceninja_network
     volumes:
@@ -15,15 +15,15 @@
     env:
       MYSQL_DATABASE: "invoiceninja"
       MYSQL_USER: "invoiceninja"
-      MYSQL_PASSWORD: "invoiceninja"
-      MYSQL_ROOT_PASSWORD: "invoiceninja"
+      MYSQL_PASSWORD: "{{ invoiceninja_db_password }}"
+      MYSQL_ROOT_PASSWORD: "{{ invoiceninja_db_root_password }}"
     restart_policy: unless-stopped
 
 - name: Create InvoiceNinja container
-  docker_container:
+  community.docker.docker_container:
     name: invoiceninja
     image: invoiceninja/invoiceninja:latest
-    pull: true
+    pull: always
     networks:
       - name: app_network
       - name: invoiceninja_network
@@ -35,13 +35,13 @@
       USER_GID: "1000"
       APP_ENV: "production"
       APP_DEBUG: "0"
-      APP_URL: "https://invoiceninja.gillick.xyz"
-      APP_KEY: "p9EsIoIMw4fX80H64ty7DUTE1UDS0YnviBd17uRfmaw="
+      APP_URL: "https://invoiceninja.{{ host }}"
+      APP_KEY: "{{ invoiceninja_app_key }}"
       APP_CIPHER: "AES-256-CBC"
       DB_TYPE: "mysql"
       DB_STRICT: "false"
       DB_HOST: "invoiceninja-mysql"
       DB_DATABASE: "invoiceninja"
       DB_USERNAME: "invoiceninja"
-      DB_PASSWORD: "invoiceninja"
+      DB_PASSWORD: "{{ invoiceninja_db_password }}"
     restart_policy: unless-stopped

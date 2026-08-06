@@ -1,19 +1,19 @@
 ---
 - name: Install required system packages
-  apt:
+  ansible.builtin.apt:
     name: mergerfs
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Install the uncaching script
-  template:
+  ansible.builtin.template:
     src: mergerfs-uncache.j2
     dest: /usr/local/bin/mergerfs-uncache
-    mode: 0775
+    mode: "0775"
   when: cache_disks[0] is defined
 
 - name: Move data from cache drive to slow pool as it gets full
-  cron:
+  ansible.builtin.cron:
     name: "uncache the mergerfs pool"
     minute: "0"
     hour: "7"

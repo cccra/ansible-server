@@ -1,8 +1,9 @@
-- name: restart relevant services
-  service:
+---
+- name: Restart relevant services
+  ansible.builtin.service:
     name: "{{ item }}"
     state: restarted
-  with_items:
+  loop:
     - netfilter-persistent
     - docker
     # - crowdsec
@@ -11,7 +12,7 @@
   until: result is succeeded
   retries: 2
 
-- name: remove the default rules
-  file:
+- name: Remove the default rules
+  ansible.builtin.file:
     path: /etc/iptables/rules.v4
     state: absent

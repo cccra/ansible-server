@@ -1,20 +1,20 @@
 ---
 - name: Install the VPN config
-  copy:
+  ansible.builtin.copy:
     src: "files/wg0.conf"
     dest: "{{ docker_dir }}/qbittorrent/config/wireguard/"
     owner: "{{ username }}"
     group: "{{ username }}"
-    mode: 0644
+    mode: "0644"
 
 - name: Make sure the qbittorrent container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "qbittorrent"
-    image: "binhex/arch-qbittorrentvpn:latest"
-    pull: yes
+    image: "binhex/arch-qbittorrentvpn:5.1.1-1-01"
+    pull: always
     networks:
       - name: app_network
-    privileged: yes
+    privileged: true
     sysctls:
       "net.ipv4.conf.all.src_valid_mark": "1"
     capabilities:

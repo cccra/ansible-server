@@ -1,12 +1,12 @@
 ---
 - name: Make sure the wizarr container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: 'wizarr'
     image: ghcr.io/wizarrrr/wizarr:latest
     networks:
-        - name: app_network
-    pull: yes
+      - name: app_network
+    pull: always
     state: 'started'
     volumes:
-        - '{{ docker_dir }}/wizarr/database:/data/database'
+      - '{{ docker_dir }}/wizarr/database:/data/database'
     restart_policy: unless-stopped

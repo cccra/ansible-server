@@ -103,12 +103,14 @@ enable_nas_stuff: false
 enable_jellyfin: false
 enable_wizarr: false
 enable_navidrome: false
+enable_audiobookshelf: false
 enable_jellyseerr: false
 enable_photoprism: false
 enable_immich: false
 enable_qbittorrent: false
 enable_sonarr: false
 enable_radarr: false
+enable_lazylibrarian: false
 enable_lidarr: false
 enable_prowlarr: false
 enable_flaresolverr: false
@@ -117,7 +119,10 @@ enable_bazarr: false
 enable_tdarr: false
 enable_gitea: false
 enable_grocy: false
+enable_tandoor: false
 enable_linkding: false
+enable_wallabag: false
+enable_openreader: false
 enable_invoiceninja: false
 enable_paperless: false
 enable_nextcloud: false
@@ -136,6 +141,18 @@ enable_crowdsec: false
 enable_iptables: false
 enable_fail2ban: false
 security_fail2ban_enabled: false
+
+# Set to true to have fail2ban push bans to the Cloudflare firewall. Requires
+# cloudflare_firewall_token (vault).
+enable_cloudflare: false
+
+# Samba is commented out of run.yml; this flag also adds the user to sambashare.
+enable_samba: false
+
+# Host-side NVIDIA driver + container toolkit. Left unset, roles/nvidia runs
+# automatically whenever a GPU-consuming service (jellyfin, immich, tdarr,
+# openreader) is enabled. Set explicitly to force it on or off.
+# enable_nvidia: false
 
 # Powersaving (powertop, cpufreq)
 enable_powersaving: false
@@ -188,11 +205,10 @@ samba_shares:
       write_list: "{{ username }}"
 
 # Snapraid and MergerFS
+# (the MergerFS/SnapRAID stack is gated by enable_nas_stuff, above)
 mergerfs_root: /mnt/storage
 
 cache_root: /mnt/storage_cache
-
-enable_mergerfs: false
 
 disks:
     - { path: /mnt/data1, src: /dev/disk/by-label/Data1, content: true }
@@ -242,3 +258,27 @@ snapraid_config_excludes:
 
 # SMART error reporting
 smartd_default_mail_recipients: ["{{ email }}"]
+
+# ---------------------------------------------------------------------------
+# Container service credentials
+# ---------------------------------------------------------------------------
+# These used to be hardcoded in the container roles and were therefore committed
+# to git. They are deliberately left UNDEFINED here so that a fresh clone fails
+# loudly rather than silently deploying a publicly known password.
+#
+# Define them in group_vars/<your-inventory-name>/vault.yml:
+#
+#   gitea_db_password:            # gitea MySQL user password
+#   gitea_db_root_password:       # gitea MySQL root password
+#   paperless_db_password:        # paperless MariaDB user password
+#   paperless_db_root_password:   # paperless MariaDB root password
+#   immich_db_password:           # immich Postgres password
+#   invoiceninja_db_password:     # invoiceninja MySQL user password
+#   invoiceninja_db_root_password:  # invoiceninja MySQL root password
+#   invoiceninja_app_key:         # invoiceninja Laravel APP_KEY
+#
+# IMPORTANT: for an ALREADY-RUNNING service, keep the value it was deployed with.
+# These environment variables are only read when the container initialises an
+# empty data directory, so a new value does not re-key an existing database -- it
+# just stops the application being able to log in. Rotating for real means an
+# ALTER USER against the running database.

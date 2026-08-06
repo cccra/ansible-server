@@ -1,8 +1,9 @@
+---
 - name: Make sure the seerr container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "jellyseerr"
     image: "ghcr.io/seerr-team/seerr:latest"
-    pull: yes
+    pull: always
     networks:
       - name: app_network
     dns_servers:

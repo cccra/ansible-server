@@ -1,9 +1,9 @@
 ---
 - name: Make sure the tdarr container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "tdarr"
     image: "ghcr.io/haveagitgat/tdarr:latest"
-    pull: yes
+    pull: always
     networks:
       - name: app_network
     state: 'started'

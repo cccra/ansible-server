@@ -1,10 +1,10 @@
 ---
 - name: Create an Immich network
-  docker_network:
+  community.docker.docker_network:
     name: immich_network
 
 - name: Make sure the Immich container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "immich"
     image: ghcr.io/imagegenius/immich:latest
     networks:
@@ -13,7 +13,7 @@
     dns_servers:
       - 1.1.1.1
       - 8.8.8.8
-    pull: yes
+    pull: always
     state: 'started'
     device_requests:
       - driver: nvidia
@@ -26,7 +26,7 @@
       "TZ": "{{ timezone }}"
       "DB_HOSTNAME": "immich-postgres"
       "DB_USERNAME": "postgres"
-      "DB_PASSWORD": "postgres"
+      "DB_PASSWORD": "{{ immich_db_password }}"
       "DB_DATABASE_NAME": "immich"
       "REDIS_HOSTNAME": "immich-redis"
       "MACHINE_LEARNING_GPU_ACCELERATION": "cuda"
@@ -39,24 +39,24 @@
     restart_policy: unless-stopped
 
 - name: Make sure the Immich Redis container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "immich-redis"
     image: redis:latest
     networks:
       - name: immich_network
-    pull: yes
+    pull: always
     restart_policy: unless-stopped
 
 - name: Make sure the Immich Postgres container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "immich-postgres"
-    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
     networks:
       - name: immich_network
-    pull: yes
+    pull: always
     env:
       "POSTGRES_USER": "postgres"
-      "POSTGRES_PASSWORD": "postgres"
+      "POSTGRES_PASSWORD": "{{ immich_db_password }}"
       "POSTGRES_DB": "immich"
     volumes:
       - "{{ docker_dir }}/immich/db:/var/lib/postgresql/data"

@@ -1,38 +1,45 @@
 ---
-- name: Clone the latest dotfiles repo
+# Note: `src dir` is created before the clone -- previously it was created after the
+# task that clones into it.
+- name: Create src dir
+  ansible.builtin.file:
+    path: "/home/{{ username }}/.local/src"
+    state: directory
+    owner: '{{ username }}'
+    group: '{{ username }}'
+    mode: "0755"
+
+- name: Clone the latest dotfiles repo  # noqa: latest[git]
+  become: true
   become_user: '{{ username }}'
-  git:
-      repo: '{{ dotfiles_repo }}'
-      dest: '/home/{{ username }}/.local/src/dotfiles'
-      recursive: no
-      force: yes
+  ansible.builtin.git:
+    repo: '{{ dotfiles_repo }}'
+    dest: '/home/{{ username }}/.local/src/dotfiles'
+    version: HEAD
+    recursive: false
+    force: true
 
 - name: Chown the repo
-  file:
-      path: '/home/{{ username }}/.local/src/dotfiles'
-      recurse: yes
-      state: directory
-      owner: '{{ username }}'
-      group: '{{ username }}'
-
-- name: Create src dir
-  file:
-    path: "/home/{{ username }}/.local/src"
+  ansible.builtin.file:
+    path: '/home/{{ username }}/.local/src/dotfiles'
+    recurse: true
     state: directory
     owner: '{{ username }}'
     group: '{{ username }}'
 
 - name: Stow the dotfiles
+  become: true
   become_user: '{{ username }}'
-  shell:
-      cmd: stow -v */
-      chdir: '/home/{{ username }}/.local/src/dotfiles'
+  ansible.builtin.shell:
+    cmd: stow -v -t ~ */
+    chdir: '/home/{{ username }}/.local/src/dotfiles'
   register: stow_result
   changed_when: stow_result.stdout != ""
 
 - name: Create Zsh cache dir
-  file:
+  ansible.builtin.file:
     path: "/home/{{ username }}/.cache/zsh"
     state: directory
     owner: '{{ username }}'
     group: '{{ username }}'
+    mode: "0755"

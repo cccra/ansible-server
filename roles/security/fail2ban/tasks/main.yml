@@ -1,80 +1,85 @@
+---
 - name: Install fail2ban
-  package:
+  ansible.builtin.package:
     name: fail2ban
     state: present
 
 - name: Copy custom fail2ban rules
-  copy:
+  ansible.builtin.copy:
     src: "{{ item }}"
     dest: "/etc/fail2ban/filter.d"
-    mode: 0644
+    mode: "0644"
     owner: root
     group: root
-  with_fileglob:
-    - "files/filter.d/*.conf"
-  when: lookup('vars', 'enable_' + (item | basename).split('.')[0].split('-')[0]) | default(False)
+  loop: "{{ query('fileglob', 'files/filter.d/*.conf') }}"
+  loop_control:
+    label: "{{ item | basename }}"
+  # `lookup('vars', X) | default(False)` cannot work: the lookup raises on an
+  # undefined variable before `default` ever sees a value. Pass the fallback to the
+  # lookup itself instead.
+  when: lookup('vars', 'enable_' + (item | basename).split('.')[0].split('-')[0], default=false)
   register: copied_rules
   notify:
     - Restart fail2ban
 
 - name: Disable e-mail notifications on jail stop and start
-  copy:
+  ansible.builtin.copy:
     src: "files/action.d/sendmail-common.local"
     dest: "/etc/fail2ban/action.d/sendmail-common.local"
-    mode: 0644
+    mode: "0644"
     owner: root
     group: root
   notify:
     - Restart fail2ban
 
 - name: Create a list of rule files that were deployed
-  set_fact:
-    installed_configs: "{{ installed_configs | default([]) + [ item.dest.split('/')[-1].split('.')[0] ] }}"
-  with_items: "{{ copied_rules.results }}"
+  ansible.builtin.set_fact:
+    installed_configs: "{{ installed_configs | default([]) + [item.dest.split('/')[-1].split('.')[0]] }}"
+  loop: "{{ copied_rules.results }}"
   when: item.skipped is not defined
   notify:
     - Restart fail2ban
 
 - name: Install the jail.local file
-  template:
+  ansible.builtin.template:
     src: "jail.local.j2"
     dest: "/etc/fail2ban/jail.local"
-    mode: 0644
+    mode: "0644"
     owner: root
     group: root
   notify:
     - Restart fail2ban
 
 - name: Install the paths-overrides.local file
-  template:
+  ansible.builtin.template:
     src: "paths-overrides.local.j2"
     dest: "/etc/fail2ban/paths-overrides.local"
-    mode: 0644
+    mode: "0644"
     owner: root
     group: root
   notify:
     - Restart fail2ban
 
 - name: Put the cloudflare token into the configuration file
-  lineinfile:
+  ansible.builtin.lineinfile:
     regex: "^cftoken ="
     line: "cftoken = {{ cloudflare_firewall_token }}"
     path: "/etc/fail2ban/action.d/cloudflare.conf"
-  when: enable_cloudflare | default(False)
+  when: enable_cloudflare | default(false)
   notify:
     - Restart fail2ban
 
 - name: Put the cloudflare email into the configuration file
-  lineinfile:
+  ansible.builtin.lineinfile:
     regex: "^cfuser ="
     line: "cfuser = {{ email }}"
     path: "/etc/fail2ban/action.d/cloudflare.conf"
-  when: enable_cloudflare | default(False)
+  when: enable_cloudflare | default(false)
   notify:
     - Restart fail2ban
 
 - name: Make sure the fail2ban systemd service is enabled and started
-  service:
+  ansible.builtin.service:
     name: fail2ban
     state: started
-    enabled: yes
+    enabled: true

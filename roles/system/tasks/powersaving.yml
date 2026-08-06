@@ -1,35 +1,35 @@
 ---
 - name: Install the powersaving packages
-  package:
+  ansible.builtin.package:
     name:
       - powertop
       - "linux-tools-{{ ansible_kernel }}"
-    state: latest
+    state: present
 
 - name: Install the systemd services
-  copy:
+  ansible.builtin.copy:
     src: "{{ item }}"
     dest: "/etc/systemd/system/{{ item | basename }}"
     owner: root
     group: root
-    mode: 0755
+    mode: "0644"
   notify:
-    - powersaving systemd reload
-  with_fileglob:
-    - files/powersaving/*.service
-    - files/powersaving/*.timer
+    - Powersaving systemd reload
+  loop: "{{ query('fileglob', 'files/powersaving/*.service', 'files/powersaving/*.timer') }}"
+  loop_control:
+    label: "{{ item | basename }}"
 
 - name: Start and enable the systemd services
-  systemd:
+  ansible.builtin.systemd:
     state: started
     enabled: true
     name: "{{ item }}"
-  with_items:
+  loop:
     - powertop.timer
     - cpupower-min.timer
 
 # - name: Shut down every day (apart from Sunday) at 1:30 AM
-#   cron:
+#   ansible.builtin.cron:
 #     name: "Power off at night to save energy"
 #     minute: "30"
 #     hour: "1"

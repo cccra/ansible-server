@@ -1,9 +1,9 @@
 ---
 - name: Make sure the lidarr container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "lidarr"
     image: "lscr.io/linuxserver/lidarr:latest"
-    pull: yes
+    pull: always
     networks:
       - name: app_network
     state: 'started'
@@ -23,8 +23,8 @@
     restart_policy: unless-stopped
 
 - name: Schedule a RSgain scan at 2 AM every day
-  cron:
+  ansible.builtin.cron:
     name: Scan the Music library
     hour: "2"
     minute: "0"
-    job: "docker run -v -rm /mnt/storage/Media/Music:/mnt rsgain easy -S -m MAX /mnt"
+    job: "docker run --rm -v {{ mergerfs_root }}/Media/Music:/mnt rsgain easy -S -m MAX /mnt"

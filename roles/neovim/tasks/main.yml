@@ -1,35 +1,34 @@
+---
 - name: Install Neovim python modules
-  pip:
-    name:
-      - pynvim
+  ansible.builtin.package:
+    name: python3-pynvim
+    state: present
 
+# get_url sets the mode itself, so the separate chmod task is no longer needed.
 - name: Grab the latest Neovim release
-  get_url:
+  become: true
+  ansible.builtin.get_url:
     url: "https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.appimage"
     dest: /usr/local/bin/nvim
-
-- name: Chmod nvim
-  become: true
-  file:
-    path: /usr/local/bin/nvim
-    state: file
-    mode: 0755
     owner: root
     group: root
-    recurse: no
+    mode: "0755"
 
-- name: Clone NvChad configs
+- name: Clone NvChad configs  # noqa: latest[git]
+  become: true
   become_user: '{{ username }}'
-  git:
+  ansible.builtin.git:
     repo: 'https://github.com/NvChad/NvChad'
     dest: '/home/{{ username }}/.config/nvim'
-    recursive: no
-    force: yes
+    version: HEAD
+    recursive: false
+    force: true
 
 # - name: Clone personal NvChad configs
+#   become: true
 #   become_user: '{{ username }}'
-#   git:
+#   ansible.builtin.git:
 #     repo: 'https://git.gillick.xyz/Gus/nvchad-config.git'
 #     dest: '/home/{{ username }}/.config/nvim/lua/custom'
-#     recursive: no
-#     force: yes
+#     recursive: false
+#     force: true

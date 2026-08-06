@@ -1,10 +1,22 @@
 ---
+# Install with: ansible-galaxy install -r requirements.yml
+# (this installs both the roles and the collections listed below)
+
+collections:
+  # Provides docker_container / docker_network, used by every role under roles/containers/
+  - name: community.docker
+    version: ">=4.0.0,<6.0.0"
+  # Provides locale_gen, snap, alternatives
+  - name: community.general
+  # Provides mount, synchronize, sysctl -- these no longer ship in ansible.builtin
+  - name: ansible.posix
+
 roles:
-    - name: bertvv.samba
-    - name: geerlingguy.security
-    - name: geerlingguy.ntp
-    - name: chriswayg.msmtp-mailer
-    - name: stuvusit.smartd
-    - name: oefenweb.dns
-    - name: notthebee.ubuntu_autoinstall
-    - name: ironicbadger.snapraid
+  - name: bertvv.samba
+  - name: geerlingguy.security
+  - name: geerlingguy.ntp
+  - name: chriswayg.msmtp-mailer
+  - name: stuvusit.smartd
+  - name: oefenweb.dns
+  - name: notthebee.ubuntu_autoinstall
+  - name: ironicbadger.snapraid

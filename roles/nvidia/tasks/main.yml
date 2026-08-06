@@ -1,0 +1,42 @@
+---
+# Extracted from roles/containers/jellyfin. Previously only the jellyfin role
+# installed the driver and container toolkit, so enabling immich, tdarr or
+# openreader *without* jellyfin produced containers that could not start.
+
+- name: Make sure the NVIDIA driver is installed
+  become: true
+  ansible.builtin.package:
+    name: "{{ nvidia_driver_package }}"
+    state: present
+
+- name: Install nvidia-container-toolkit
+  become: true
+  ansible.builtin.package:
+    name: nvidia-container-toolkit
+    state: present
+  register: nvidia_toolkit
+
+- name: Configure docker to use the NVIDIA container runtime  # noqa: no-handler
+  become: true
+  ansible.builtin.command:
+    cmd: nvidia-ctk runtime configure --runtime=docker
+  when: nvidia_toolkit is changed
+  changed_when: true
+  notify: Restart docker
+
+- name: Flush handlers so docker restarts before any container is started
+  ansible.builtin.meta: flush_handlers
+
+- name: Check if a reboot is required
+  become: true
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: nvidia_reboot_required
+
+- name: Reboot if required
+  become: true
+  ansible.builtin.reboot:
+    msg: Rebooting due to a kernel or NVIDIA driver update
+  when:
+    - nvidia_allow_reboot | bool
+    - nvidia_reboot_required.stat.exists

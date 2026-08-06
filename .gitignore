@@ -9,3 +9,10 @@ group_vars/
 host_vars/
 !host_vars/.gitkeep
 files/wg0.conf
+
+# Editor/vault backups -- these can contain secrets
+*.bak
+
+# Local tooling
+.venv/
+.ansible/

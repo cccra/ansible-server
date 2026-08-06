@@ -1,8 +1,9 @@
+---
 - name: Create Grocy container
-  docker_container:
+  community.docker.docker_container:
     name: grocy
     image: linuxserver/grocy:latest
-    pull: true
+    pull: always
     networks:
       - name: app_network
     volumes:

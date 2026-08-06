@@ -1,141 +1,176 @@
 ---
-- include_tasks: repo_arch.yml
+- name: Resolve the apt repository architecture
+  ansible.builtin.include_tasks: repo_arch.yml
 
 - name: Include OS-specific variables
-  include_vars: "{{ ansible_facts['distribution'] }}.yml"
+  ansible.builtin.include_vars: "{{ ansible_facts['distribution'] }}.yml"
+
 - name: Install required system packages
-  package:
+  ansible.builtin.package:
     state: present
     name: "{{ docker_deps }}"
 
 - name: Install Docker (Ubuntu)
   when: ansible_facts['distribution'] == 'Ubuntu'
+  become: true
   block:
-  - name: Add Docker GPG apt Key
-    become: yes
-    shell:
-      cmd: "curl -sL https://download.docker.com/linux/ubuntu/gpg | gpg --batch --yes --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg"
+    - name: Ensure the apt keyring directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
 
-  - name: Add Docker Repository
-    apt_repository:
-      repo: "deb [arch={{ repo_arch }} signed-by=/etc/apt/trusted.gpg.d/docker.gpg] https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }} {{ ansible_lsb['codename'] }} stable"
-      state: present
-      filename: docker
+    - name: Add the Docker apt signing key
+      ansible.builtin.get_url:
+        url: "https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}/gpg"
+        dest: /etc/apt/keyrings/docker.asc
+        owner: root
+        group: root
+        mode: "0644"
 
-  - name: Switch to iptables-legacy
-    alternatives:
-      name: iptables
-      path: /usr/sbin/iptables-legacy
+    - name: Add the Docker apt repository
+      ansible.builtin.deb822_repository:
+        name: docker
+        types: [deb]
+        uris: "https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}"
+        suites: ["{{ ansible_facts['distribution_release'] }}"]
+        components: [stable]
+        architectures: ["{{ repo_arch }}"]
+        signed_by: /etc/apt/keyrings/docker.asc
+        enabled: true
+        state: present
+      register: docker_repo
 
-  - name: Switch to ip6tables-legacy
-    alternatives:
-      name: ip6tables
-      path: /usr/sbin/ip6tables-legacy
+    # The repo used to be defined as a one-line docker.list with its key in
+    # trusted.gpg.d. Leaving those in place would define the repository twice.
+    - name: Remove the superseded Docker apt source and key
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/apt/sources.list.d/docker.list
+        - /etc/apt/trusted.gpg.d/docker.gpg
 
-  - name: Switch to pip3
-    alternatives:
-      name: pip
-      link: /usr/bin/pip
-      path: /usr/bin/pip3
+    - name: Switch to iptables-legacy
+      community.general.alternatives:
+        name: iptables
+        path: /usr/sbin/iptables-legacy
 
-  - name: Switch to python3
-    alternatives:
-      name: python
-      link: /usr/bin/python
-      path: /usr/bin/python3
+    - name: Switch to ip6tables-legacy
+      community.general.alternatives:
+        name: ip6tables
+        path: /usr/sbin/ip6tables-legacy
 
-- name: Update apt and install docker-ce
+    - name: Switch to pip3
+      community.general.alternatives:
+        name: pip
+        link: /usr/bin/pip
+        path: /usr/bin/pip3
+
+    - name: Switch to python3
+      community.general.alternatives:
+        name: python
+        link: /usr/bin/python
+        path: /usr/bin/python3
+
+- name: Update apt and install Docker
   when: ansible_facts['os_family'] == 'Debian'
-  apt:
-    update_cache: yes
+  ansible.builtin.apt:
+    update_cache: true
     name: "{{ docker_packages }}"
     state: present
 
 - name: Ensure group docker exists
-  group:
+  ansible.builtin.group:
     name: docker
     state: present
 
-- name: Add user "{{ username }}" to group docker
-  user:
-    name: '{{ username }}'
+- name: Add the deploy user to the docker group
+  ansible.builtin.user:
+    name: "{{ username }}"
     groups:
       - docker
-    append: yes
+    append: true
 
-- name: Install Docker Module for Python
-  pip:
-    name: docker
+- name: Install the Docker module for Python
+  ansible.builtin.package:
+    name: python3-docker
+    state: present
 
 - name: Make sure Docker is running and enabled
-  service:
+  ansible.builtin.service:
     name: docker
     state: started
-    enabled: yes
+    enabled: true
 
 - name: Get a list of containers
   delegate_to: localhost
-  become: no
-  find:
+  become: false
+  ansible.builtin.find:
     paths:
       - "roles/containers"
     file_type: directory
-    recurse: no
+    recurse: false
   register: containers
 
+# The enable_* flags are the source of truth for what runs: flipping one off and
+# re-running actually tears the container down.
 - name: Stop and remove all the disabled containers
-  become: no
-  docker_container:
+  become: false
+  community.docker.docker_container:
     name: "{{ item.path.split('/')[-1] }}"
     state: absent
-  when: not lookup('vars', 'enable_' + item.path.split('/')[-1])
-  with_items: "{{ containers.files }}"
+  when: not lookup('vars', 'enable_' + item.path.split('/')[-1], default=false)
+  loop: "{{ containers.files }}"
+  loop_control:
+    label: "{{ item.path.split('/')[-1] }}"
 
 - name: Handle persistent data
-  become: no
-  when: "enable_nas_stuff | default(False)"
+  become: false
+  when: enable_nas_stuff | default(false)
   block:
-  - name: Check if the persistent data folder exists on the remote machine
-    stat:
-      path: "{{ docker_dir }}"
-    register: persistent_data
-    when: "enable_nas_stuff | default(False)"
+    - name: Check if the persistent data folder exists on the remote machine
+      ansible.builtin.stat:
+        path: "{{ docker_dir }}"
+      register: persistent_data
 
-  - name: Check if the persistent data folder is empty
-    find:
-      paths:
-        - "{{ docker_dir }}/"
-      file_type: directory
-      depth: 2
-    register: persistent_data_find
-    when: "enable_nas_stuff | default(False)"
+    - name: Check if the persistent data folder is empty
+      ansible.builtin.find:
+        paths:
+          - "{{ docker_dir }}/"
+        file_type: directory
+        depth: 2
+      register: persistent_data_find
 
-  - name: Create the persistent data folder on the remote machine
-    become: yes
-    file:
-      dest: "{{ docker_dir }}"
-      state: directory
-      owner: "{{ username }}"
-      group: "users"
-      mode: "ug=rwx,o=rx,g+s"
-      recurse: yes
-    when: not persistent_data.stat.exists
+    - name: Create the persistent data folder on the remote machine
+      become: true
+      ansible.builtin.file:
+        dest: "{{ docker_dir }}"
+        state: directory
+        owner: "{{ username }}"
+        group: "users"
+        mode: "ug=rwx,o=rx,g+s"
+        recurse: true
+      when: not persistent_data.stat.exists
 
-  - name: Restore the "{{ docker_dir }}" folder from the MergerFS array
-    synchronize:
-      src: "{{ mergerfs_root }}/docker_data/"
-      dest: "{{ docker_dir }}/"
-      delete: true
-      recursive: yes
-    delegate_to: "{{ inventory_hostname }}"
-    when: persistent_data_find.matched < 5 or not persistent_data.stat.exists
+    - name: Restore the persistent data folder from the MergerFS array
+      become: true
+      ansible.posix.synchronize:
+        src: "{{ mergerfs_root }}/docker_data/"
+        dest: "{{ docker_dir }}/"
+        delete: true
+        recursive: true
+      delegate_to: "{{ inventory_hostname }}"
+      when: persistent_data_find.matched < 5 or not persistent_data.stat.exists
 
-# - name: Chmod the data folder
-#   become: yes
-#   file:
-#     dest: "{{ docker_dir }}"
-#     state: directory
-#     owner: "{{ username }}"
-#     mode: "0775"
-#     group: "users"
-#     recurse: yes
+- name: Chmod the data folder
+  become: true
+  ansible.builtin.file:
+    dest: "{{ docker_dir }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "users"
+    mode: "0775"
+    recurse: true

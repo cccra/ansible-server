@@ -1,74 +1,23 @@
 ---
-- include_tasks: repo_arch.yml
-
-- name: Make sure Nvidia drivers are installed
-  become: true
-  package:
-    name:
-      - "nvidia-driver-535"
-    state: latest
-
-- name: Add Nvidia GPG apt Key
-  apt_key:
-    url: "https://nvidia.github.io/libnvidia-container/gpgkey"
-
-- name: Add Nvidia Repository
-  become: true
-  apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/ubuntu18.04/$(ARCH) /"
-    state: present
-    filename: nvidia-container-toolkit
-
-- name: Install nvidia-container-toolkit
-  become: true
-  package:
-    name:
-      - nvidia-container-toolkit
-    state: latest
-  register: nvidia_installed
-
-- name: Configure docker to recognise nvidia containter
-  become: true
-  shell:
-    cmd: "sudo nvidia-ctk runtime configure --runtime=docker"
-  when: nvidia_installed.changed
-
-- name: Restart docker
-  become: true
-  service:
-    name: docker
-    state: reloaded
-  when: nvidia_installed.changed
-
-- name: Check if reboot required
-  stat:
-    path: /var/run/reboot-required
-  register: reboot_required_file
-
-- name: Reboot if required
-  reboot:
-    msg: Rebooting due to a kernel update
-  when: reboot_required_file.stat.exists
+# NVIDIA driver / container-toolkit setup lives in roles/nvidia, which runs for any
+# GPU-consuming service rather than only for Jellyfin.
 
 - name: Increase max_user_watches for automatic import
   become: true
-  blockinfile:
-    path: /etc/sysctl.conf
-    marker: "# {mark} ANSIBLE MANAGED BLOCK"
-    block: fs.inotify.max_user_watches=3276800
-
-- name: Upgrade python docker via pip
-  pip:
-    name: docker
-    state: latest
+  ansible.posix.sysctl:
+    name: fs.inotify.max_user_watches
+    value: "3276800"
+    sysctl_set: true
+    state: present
+    reload: true
 
 - name: Make sure the jellyfin container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "jellyfin"
     image: "ghcr.io/linuxserver/jellyfin:latest"
     networks:
       - name: app_network
-    pull: true
+    pull: always
     privileged: true
     device_requests:
       - driver: nvidia

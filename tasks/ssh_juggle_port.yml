@@ -1,70 +1,76 @@
 ---
-- name: SSH Port Juggle | Try connecting via SSH
-  wait_for_connection:
+# Probe how this host is reachable, so the same playbook works against both a freshly
+# imaged box (port 22, default credentials) and an already-hardened one
+# (security_ssh_port, key-based auth).
+#
+# Each step only runs if every previous one failed, and each registers its OWN result
+# variable. The previous version reused `_ssh_port_default_cred_result` for two
+# different probes and then gated the final failure on `_ssh_port_root_result`, which
+# was never registered -- so the playbook could never report an unreachable host and
+# instead failed later with a confusing error.
+
+- name: SSH port juggle | Try the configured port
+  ansible.builtin.wait_for_connection:
     timeout: 5
   ignore_errors: true
-  register: _ssh_port_result
+  register: _ssh_configured
 
-- name: SSH Port Juggle | Set the ansible_port to the fallback default port
-  set_fact:
-    ansible_ssh_port: "22"
+- name: SSH port juggle | Fall back to port 22
+  when: _ssh_configured is failed
+  block:
+    - name: SSH port juggle | Set the fallback port
+      ansible.builtin.set_fact:
+        ansible_ssh_port: "22"
+
+    - name: SSH port juggle | Try port 22 with the configured user
+      ansible.builtin.wait_for_connection:
+        timeout: 5
+      ignore_errors: true
+      register: _ssh_port22
+
+- name: SSH port juggle | Fall back to the default Raspberry Pi credentials
   when:
-    - _ssh_port_result is failed
+    - _ssh_configured is failed
+    - _ssh_port22 is defined and _ssh_port22 is failed
+  block:
+    - name: SSH port juggle | Set the default Pi credentials
+      ansible.builtin.set_fact:
+        ansible_ssh_port: "22"
+        ansible_ssh_user: pi
+        ansible_ssh_password: raspberry
 
-- name: SSH Port Juggle | Try connecting again
-  wait_for_connection:
-    timeout: 5
-  ignore_errors: true
-  register: _ssh_port_default_result
+    - name: SSH port juggle | Try the default Pi credentials
+      ansible.builtin.wait_for_connection:
+        timeout: 5
+      ignore_errors: true
+      register: _ssh_pi
+
+- name: SSH port juggle | Fall back to root
   when:
-    - _ssh_port_result is failed
+    - _ssh_configured is failed
+    - _ssh_port22 is defined and _ssh_port22 is failed
+    - _ssh_pi is defined and _ssh_pi is failed
+  block:
+    - name: SSH port juggle | Set the root credentials
+      ansible.builtin.set_fact:
+        ansible_ssh_port: "22"
+        ansible_ssh_user: root
+        ansible_ssh_password: null
 
+    - name: SSH port juggle | Try root
+      ansible.builtin.wait_for_connection:
+        timeout: 5
+      ignore_errors: true
+      register: _ssh_root
 
-- name: SSH Port Juggle | Set the ansible_port to the fallback default port and credentials
-  set_fact:
-    ansible_ssh_port: "22"
-    ansible_ssh_user: "pi"
-    ansible_ssh_password: "raspberry"
+- name: SSH port juggle | Give up
+  ansible.builtin.fail:
+    msg: >-
+      Could not reach {{ inventory_hostname }}. Tried the configured port
+      ({{ security_ssh_port | default('undefined') }}) and port 22 as the configured
+      user, as pi, and as root.
   when:
-    - _ssh_port_result is failed
-    - _ssh_port_default_result is failed
-
-- name: Try default credentials (for Raspberry Pi)
-  wait_for_connection:
-    timeout: 5
-  ignore_errors: true
-  register: _ssh_port_default_cred_result
-  when:
-    - _ssh_port_result is failed
-    - _ssh_port_default_result is failed
-
-- name: SSH Port Juggle | Try root
-  set_fact:
-    ansible_ssh_port: "22"
-    ansible_ssh_user: "root"
-  when:
-    - _ssh_port_result is failed
-    - _ssh_port_default_result is failed
-    - _ssh_port_default_cred_result is failed
-
-
-- name: Try root
-  wait_for_connection:
-    timeout: 5
-  ignore_errors: true
-  register: _ssh_port_default_cred_result
-  when:
-    - _ssh_port_result is failed
-    - _ssh_port_default_result is failed
-    - _ssh_port_default_cred_result is failed
-
-- name: SSH Port Juggle | Fail
-  fail: msg="Neither the configured ansible_port {{ ansible_port }} nor the fallback port 22 were reachable"
-  when:
-    - _ssh_port_result is failed
-    - _ssh_port_default_result is defined
-    - _ssh_port_default_result is failed
-    - _ssh_port_default_cred_result is defined
-    - _ssh_port_default_cred_result is failed
-    - _ssh_port_root_result is defined
-    - _ssh_port_root_result is failed
+    - _ssh_configured is failed
+    - _ssh_port22 is defined and _ssh_port22 is failed
+    - _ssh_pi is defined and _ssh_pi is failed
+    - _ssh_root is defined and _ssh_root is failed

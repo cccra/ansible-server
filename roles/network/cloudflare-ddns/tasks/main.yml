@@ -1,9 +1,9 @@
 ---
 - name: Make sure the cloudflare-ddns container is created and running
-  docker_container:
+  community.docker.docker_container:
     name: "cloudflare-ddns"
     image: "oznu/cloudflare-ddns:latest"
-    pull: yes
+    pull: always
     state: 'started'
     env:
       "PUID": "{{ guid }}"
