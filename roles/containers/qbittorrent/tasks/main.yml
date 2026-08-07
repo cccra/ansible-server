@@ -23,6 +23,10 @@
     pull: "{{ container_pull }}"
     networks:
       - name: media_network
+    # Networks are declarative here: the default allow_more_present would connect
+    # the new network but leave the container attached to the old one.
+    comparisons:
+      networks: strict
     # wg-quick sets src_valid_mark itself; unprivileged, /proc/sys is read-only and
     # the tunnel fails to come up.
     privileged: true

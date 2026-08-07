@@ -38,6 +38,10 @@
     pull: "{{ container_pull }}"
     networks:
       - name: paperless_network
+    # Networks are declarative here: the default allow_more_present would connect
+    # the new network but leave the container attached to the old one.
+    comparisons:
+      networks: strict
     volumes:
       - "{{ docker_dir }}/paperless/config:/config"
       - "{{ docker_dir }}/paperless/data:/data"
