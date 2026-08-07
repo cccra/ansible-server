@@ -13,6 +13,10 @@
     labels: {"nas-setup.service": "homarr"}
     networks:
       - name: homarr_network
+    # Networks are declarative here: the default allow_more_present would connect
+    # the new network but leave the container attached to the old one.
+    comparisons:
+      networks: strict
     pull: "{{ container_pull }}"
     state: 'started'
     env:

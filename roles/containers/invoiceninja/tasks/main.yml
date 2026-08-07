@@ -27,6 +27,10 @@
     pull: "{{ container_pull }}"
     networks:
       - name: invoiceninja_network
+    # Networks are declarative here: the default allow_more_present would connect
+    # the new network but leave the container attached to the old one.
+    comparisons:
+      networks: strict
     volumes:
       - "{{ docker_dir }}/invoiceninja/public:/var/app/public"
       - "{{ docker_dir }}/invoiceninja/storage:/var/app/storage"
