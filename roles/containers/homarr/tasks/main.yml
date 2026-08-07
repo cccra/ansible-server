@@ -3,13 +3,13 @@
   community.docker.docker_container:
     name: 'homarr'
     image: ghcr.io/homarr-labs/homarr:latest
+    labels: {"nas-setup.service": "homarr"}
     networks:
       - name: app_network
-    pull: always
+    pull: "{{ container_pull }}"
     state: 'started'
     env:
       'SECRET_ENCRYPTION_KEY': '{{ homarr_key }}'
     volumes:
       - '{{ docker_dir }}/homarr/appdata:/appdata'
-      - '/var/run/docker.sock:/var/run/docker.sock'
     restart_policy: unless-stopped

@@ -3,7 +3,7 @@
   community.docker.docker_container:
     name: "cloudflare-ddns"
     image: "oznu/cloudflare-ddns:latest"
-    pull: always
+    pull: "{{ container_pull }}"
     state: 'started'
     env:
       "PUID": "{{ guid }}"

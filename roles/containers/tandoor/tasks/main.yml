@@ -8,9 +8,9 @@
   community.docker.docker_container:
     name: "tandoor-postgres"
     image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    labels: "{{ watchtower_exclude_labels | combine({'nas-setup.service': 'tandoor'}) }}"
     networks:
       - name: tandoor_network
-    pull: always
     env:
       POSTGRES_USER: "djangodb"
       POSTGRES_PASSWORD: "{{ tandoor_postgres_password }}"
@@ -23,7 +23,8 @@
   community.docker.docker_container:
     name: tandoor
     image: vabene1111/recipes:latest
-    pull: always
+    labels: {"nas-setup.service": "tandoor"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
       - name: tandoor_network

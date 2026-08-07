@@ -3,7 +3,8 @@
   community.docker.docker_container:
     name: "unpackerr"
     image: "golift/unpackerr:latest"
-    pull: always
+    labels: {"nas-setup.service": "unpackerr"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     state: 'started'

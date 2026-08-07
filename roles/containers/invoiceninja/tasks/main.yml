@@ -6,8 +6,8 @@
 - name: Create MySQL container for invoiceninja
   community.docker.docker_container:
     name: "invoiceninja-mysql"
-    image: mysql:5.7
-    pull: always
+    image: "{{ mysql_image }}"
+    labels: "{{ watchtower_exclude_labels | combine({'nas-setup.service': 'invoiceninja'}) }}"
     networks:
       - name: invoiceninja_network
     volumes:
@@ -23,7 +23,8 @@
   community.docker.docker_container:
     name: invoiceninja
     image: invoiceninja/invoiceninja:latest
-    pull: always
+    labels: {"nas-setup.service": "invoiceninja"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
       - name: invoiceninja_network

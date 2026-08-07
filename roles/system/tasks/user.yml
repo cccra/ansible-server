@@ -85,6 +85,9 @@
     state: present
     append: true
     shell: /sbin/nologin
-  loop: "{{ additional_users }}"
-  when: additional_users is defined
+  # `when: additional_users is defined` cannot guard this: the loop is expanded
+  # before the conditional is evaluated. Default to an empty list instead.
+  loop: "{{ additional_users | default([], true) }}"
+  loop_control:
+    label: "{{ item.name }}"
   no_log: true

@@ -6,14 +6,13 @@
 - name: Make sure the Paperless MariaDB container is created and running
   community.docker.docker_container:
     name: "paperless-mariadb"
-    image: "mariadb:latest"
-    pull: always
+    image: "{{ mariadb_image }}"
+    labels: "{{ watchtower_exclude_labels | combine({'nas-setup.service': 'paperless'}) }}"
     networks:
       - name: paperless_network
     state: 'started'
     env:
       "TZ": "{{ timezone }}"
-      "MARIADB_HOST": "paperless"
       "MARIADB_ROOT_PASSWORD": "{{ paperless_db_root_password }}"
       "MARIADB_DATABASE": "paperless"
       "MARIADB_USER": "paperless"
@@ -25,17 +24,18 @@
 - name: Make sure the Paperless Redis container is created and running
   community.docker.docker_container:
     name: "paperless-redis"
-    image: redis:latest
+    image: "{{ redis_image }}"
+    labels: "{{ watchtower_exclude_labels | combine({'nas-setup.service': 'paperless'}) }}"
     networks:
       - name: paperless_network
-    pull: always
     restart_policy: unless-stopped
 
 - name: Create Paperless container
   community.docker.docker_container:
     name: paperless
     image: paperlessngx/paperless-ngx:latest
-    pull: always
+    labels: {"nas-setup.service": "paperless"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
       - name: paperless_network
@@ -48,6 +48,7 @@
       "PGID": "1000"
       "PAPERLESS_CONSUMPTION_DIR": "/consume"
       "PAPERLESS_URL": "https://paperless.{{ host }}"
+      "PAPERLESS_SECRET_KEY": "{{ paperless_secret_key }}"
       "PAPERLESS_DBENGINE": "mariadb"
       "PAPERLESS_DBHOST": "paperless-mariadb"
       "PAPERLESS_DBPORT": "3306"

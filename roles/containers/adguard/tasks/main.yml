@@ -10,11 +10,12 @@
   community.docker.docker_container:
     name: 'adguard'
     image: "adguard/adguardhome:latest"
+    labels: {"nas-setup.service": "adguard"}
     networks:
       - name: adguard_network
         ipv4_address: "{{ adguard_address }}"
       - name: app_network
-    pull: always
+    pull: "{{ container_pull }}"
     capabilities:
       - net_admin
     state: 'started'
@@ -24,7 +25,7 @@
       - "{{ docker_dir }}/adguard/work:/opt/adguardhome/work"
       - "{{ docker_dir }}/adguard/conf:/opt/adguardhome/conf"
     ports:
-      - "3030:80"
+      - "{{ lan_address }}:3030:80"
       - "{{ lan_address }}:53:53/tcp"
       - "{{ lan_address }}:53:53/udp"
     restart_policy: unless-stopped

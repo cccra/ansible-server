@@ -1,19 +1,30 @@
 ---
+- name: Fail early if the VPN config is missing
+  ansible.builtin.fail:
+    msg: >-
+      qbittorrent_wg_config is not defined. Put the WireGuard config for this host in
+      group_vars/<inventory>/vault.yml as a block scalar (qbittorrent_wg_config: |).
+  when: qbittorrent_wg_config is not defined
+
 - name: Install the VPN config
   ansible.builtin.copy:
-    src: "files/wg0.conf"
-    dest: "{{ docker_dir }}/qbittorrent/config/wireguard/"
+    content: "{{ qbittorrent_wg_config }}"
+    dest: "{{ docker_dir }}/qbittorrent/config/wireguard/wg0.conf"
     owner: "{{ username }}"
     group: "{{ username }}"
-    mode: "0644"
+    mode: "0600"
+  no_log: true
 
 - name: Make sure the qbittorrent container is created and running
   community.docker.docker_container:
     name: "qbittorrent"
     image: "binhex/arch-qbittorrentvpn:5.1.1-1-01"
-    pull: always
+    labels: {"nas-setup.service": "qbittorrent"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
+    # wg-quick sets src_valid_mark itself; unprivileged, /proc/sys is read-only and
+    # the tunnel fails to come up.
     privileged: true
     sysctls:
       "net.ipv4.conf.all.src_valid_mark": "1"
@@ -21,7 +32,7 @@
       - net_admin
     state: 'started'
     ports:
-      - "8118:8118"
+      - "{{ lan_address }}:8118:8118"
     env:
       "WEBUI_PORT": "6017"
       "VPN_ENABLED": "yes"
@@ -29,7 +40,7 @@
       "VPN_CLIENT": "wireguard"
       "ENABLE_PRIVOXY": "yes"
       "NAME_SERVERS": "{{ ','.join(dns_nameservers) }}"
-      "LAN_NETWORK": "172.20.0.0/16, {{ lan_network }}"
+      "LAN_NETWORK": "{{ app_network_subnet }}, {{ lan_network }}"
       "UMASK": "000"
       "PUID": "{{ guid }}"
       "PGID": "{{ guid }}"

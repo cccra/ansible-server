@@ -1,0 +1,34 @@
+---
+- name: Install the snapraid-backup script
+  ansible.builtin.template:
+    src: snapraid-backup.sh.j2
+    dest: /usr/local/bin/snapraid-backup.sh
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Create the snapraid-backup log file
+  ansible.builtin.file:
+    path: /var/log/snapraid-backup.log
+    state: touch
+    owner: root
+    group: root
+    mode: "0640"
+    modification_time: preserve
+    access_time: preserve
+
+- name: Install a logrotate policy for the snapraid-backup log
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/snapraid-backup
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      /var/log/snapraid-backup.log {
+          monthly
+          rotate 12
+          compress
+          delaycompress
+          missingok
+          notifempty
+      }

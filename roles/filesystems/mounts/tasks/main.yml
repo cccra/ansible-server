@@ -1,67 +1,78 @@
 ---
+# Note on `| default([], true)`: these disk lists may be overridden to null/empty in
+# a host's group_vars. `with_items` used to coerce None to an empty list, but `loop`
+# requires a real list and errors on None. The `true` second argument makes `default`
+# also fire for falsy values (None, ""), not just undefined ones.
+#
+# The `when` cannot guard this on its own -- `loop` is expanded before `when` is
+# evaluated, and `when` then filters per item.
+
 - name: Mount the data drives
   ansible.posix.mount:
-    name: "{{ item.path }}"
+    path: "{{ item.path }}"
     src: "{{ item.src }}"
     fstype: xfs
     state: mounted
     passno: "2"
-  loop: "{{ disks }}"
-  when: disks[0] is defined
+  loop: "{{ disks | default([], true) }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Mount the cache drives
   ansible.posix.mount:
-    name: "{{ item.path }}"
+    path: "{{ item.path }}"
     src: "{{ item.src }}"
     fstype: ext4
     state: mounted
     opts: defaults,discard
     passno: "2"
-  loop: "{{ cache_disks }}"
-  when: cache_disks[0] is defined
+  loop: "{{ cache_disks | default([], true) }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Mount the parity drives
   ansible.posix.mount:
-    name: "{{ item.path }}"
+    path: "{{ item.path }}"
     src: "{{ item.src }}"
     fstype: xfs
     state: mounted
     passno: "2"
-  loop: "{{ parity_disks }}"
-  when: parity_disks[0] is defined
+  loop: "{{ parity_disks | default([], true) }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 # - name: Mount the mergerfs cached array
-#   mount:
-#     name: "{{ mergerfs_root }}"
+#   ansible.posix.mount:
+#     path: "{{ mergerfs_root }}"
 #     src: /mnt/storage_cache:/mnt/storage_slow
 #     opts: category.create=lfs,defaults,allow_other,moveonenospc=1,minfreespace=50G,fsname=mergerfs,uid=1000,gid=1000
 #     fstype: fuse.mergerfs
 #     state: mounted
-#   when: disks[0] is defined
+#   when: disks | default([], true) | length > 0
 
 - name: Mount the mergerfs array
   ansible.posix.mount:
-    name: "{{ mergerfs_root }}"
+    path: "{{ mergerfs_root }}"
     src: /mnt/data*
     opts: category.create=lfs,defaults,allow_other,moveonenospc=1,minfreespace=50G,fsname=mergerfs,uid=1000,gid=1000
     fstype: fuse.mergerfs
     state: mounted
-  when: disks[0] is defined
+  when: disks | default([], true) | length > 0
 
 - name: Mount the mergerfs cache only array
   ansible.posix.mount:
-    name: "{{ cache_root }}"
+    path: "{{ cache_root }}"
     src: /mnt/cache*
     opts: defaults,allow_other,fsname=mergerfs_cache,category.create=mfs
     fstype: fuse.mergerfs
     state: mounted
-  when: cache_disks[0] is defined
+  when: cache_disks | default([], true) | length > 0
 
 # - name: Set owner and permissions of storage
-#   file:
+#   ansible.builtin.file:
 #     dest: "{{ mergerfs_root }}"
 #     state: directory
 #     owner: "{{ username }}"
 #     group: "users"
 #     mode: "ug=rwx,o=rx,g+s"
-#     recurse: yes
+#     recurse: true

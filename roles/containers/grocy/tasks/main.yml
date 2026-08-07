@@ -3,7 +3,8 @@
   community.docker.docker_container:
     name: grocy
     image: linuxserver/grocy:latest
-    pull: always
+    labels: {"nas-setup.service": "grocy"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     volumes:

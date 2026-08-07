@@ -3,7 +3,8 @@
   community.docker.docker_container:
     name: "lazylibrarian"
     image: "ghcr.io/linuxserver/lazylibrarian:latest"
-    pull: always
+    labels: {"nas-setup.service": "lazylibrarian"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     state: 'started'

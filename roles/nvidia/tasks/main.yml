@@ -8,12 +8,23 @@
   ansible.builtin.package:
     name: "{{ nvidia_driver_package }}"
     state: present
+  register: nvidia_driver
+
+# Published for the GPU container roles. The toolkit injects the host's driver
+# libraries into a container at CREATE time, so a container that is merely restarted
+# after a driver upgrade keeps the OLD libraries bind-mounted and breaks. The GPU
+# roles consume this to force a recreate.
+- name: Record whether the NVIDIA driver changed
+  ansible.builtin.set_fact:
+    nvidia_driver_changed: "{{ nvidia_driver is changed }}"
 
 - name: Install nvidia-container-toolkit
   become: true
   ansible.builtin.package:
-    name: nvidia-container-toolkit
-    state: present
+    name:
+      - nvidia-container-toolkit
+      - nvidia-container-toolkit-base
+    state: "{{ nvidia_toolkit_state }}"
   register: nvidia_toolkit
 
 - name: Configure docker to use the NVIDIA container runtime  # noqa: no-handler
@@ -33,10 +44,14 @@
     path: /var/run/reboot-required
   register: nvidia_reboot_required
 
+# A driver upgrade leaves the OLD kernel module loaded while the userspace libraries
+# are already new, which surfaces inside every GPU container as
+# "Failed to initialize NVML: Driver/library version mismatch". Ubuntu does not
+# always drop /var/run/reboot-required for these, so reboot on a driver change too.
 - name: Reboot if required
   become: true
   ansible.builtin.reboot:
     msg: Rebooting due to a kernel or NVIDIA driver update
   when:
     - nvidia_allow_reboot | bool
-    - nvidia_reboot_required.stat.exists
+    - nvidia_reboot_required.stat.exists or nvidia_driver_changed | bool

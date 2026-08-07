@@ -3,7 +3,8 @@
   community.docker.docker_container:
     name: "lidarr"
     image: "lscr.io/linuxserver/lidarr:latest"
-    pull: always
+    labels: {"nas-setup.service": "lidarr"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     state: 'started'
@@ -11,7 +12,7 @@
       - 1.1.1.1
       - 8.8.8.8
     ports:
-      - "8686:8686"
+      - "{{ lan_address }}:8686:8686"
     env:
       "PUID": "{{ guid }}"
       "PGID": "{{ guid }}"

@@ -3,7 +3,8 @@
   community.docker.docker_container:
     name: "bazarr"
     image: "linuxserver/bazarr:latest"
-    pull: always
+    labels: {"nas-setup.service": "bazarr"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     state: 'started'

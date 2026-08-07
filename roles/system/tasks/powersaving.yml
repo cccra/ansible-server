@@ -3,7 +3,7 @@
   ansible.builtin.package:
     name:
       - powertop
-      - "linux-tools-{{ ansible_kernel }}"
+      - "linux-tools-{{ ansible_facts['kernel'] }}"
     state: present
 
 - name: Install the systemd services

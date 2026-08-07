@@ -3,7 +3,8 @@
   community.docker.docker_container:
     name: "navidrome"
     image: "deluan/navidrome:develop"
-    pull: always
+    labels: {"nas-setup.service": "navidrome"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     state: 'started'

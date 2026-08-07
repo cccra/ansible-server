@@ -7,7 +7,8 @@
   community.docker.docker_container:
     name: "openreader-kokoro"
     image: "ghcr.io/remsky/kokoro-fastapi-gpu:v0.5.0-cu126"
-    pull: always
+    labels: {"nas-setup.service": "openreader"}
+    pull: "{{ container_pull }}"
     networks:
       - name: openreader_network
     state: 'started'
@@ -20,13 +21,17 @@
         count: -1
         capabilities:
           - gpu
+    # Force a recreate when the host driver changed -- the toolkit only injects the
+    # driver libraries when the container is created, never on a restart.
+    recreate: "{{ nvidia_driver_changed | default(false) }}"
     restart_policy: unless-stopped
 
 - name: Create OpenReader container
   community.docker.docker_container:
     name: openreader
     image: "ghcr.io/richardr1126/openreader:latest"
-    pull: always
+    labels: {"nas-setup.service": "openreader"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
       - name: openreader_network

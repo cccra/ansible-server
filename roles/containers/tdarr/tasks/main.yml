@@ -3,7 +3,8 @@
   community.docker.docker_container:
     name: "tdarr"
     image: "ghcr.io/haveagitgat/tdarr:latest"
-    pull: always
+    labels: {"nas-setup.service": "tdarr"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     state: 'started'
@@ -12,6 +13,9 @@
         count: -1
         capabilities:
           - gpu
+    # Force a recreate when the host driver changed -- the toolkit only injects the
+    # driver libraries when the container is created, never on a restart.
+    recreate: "{{ nvidia_driver_changed | default(false) }}"
     log_driver: 'json-file'
     log_opt:
       max-size: '10m'

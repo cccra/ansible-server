@@ -1,0 +1,15 @@
+[Unit]
+Description=NAS host firewall (INPUT + DOCKER-USER)
+Documentation=https://github.com/cccra/nas-setup
+After=docker.service network-online.target
+Wants=docker.service network-online.target
+# This flushes INPUT; they must install their jump rules after it.
+Before=fail2ban.service crowdsec-firewall-bouncer.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/nas-firewall.sh
+
+[Install]
+WantedBy=multi-user.target

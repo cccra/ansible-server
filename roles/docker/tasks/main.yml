@@ -105,6 +105,44 @@
     state: started
     enabled: true
 
+- name: Read the existing Docker daemon configuration
+  become: true
+  ansible.builtin.slurp:
+    src: /etc/docker/daemon.json
+  register: docker_daemon_raw
+  failed_when: false
+  changed_when: false
+
+# Merged, not overwritten: roles/nvidia adds its runtime to this same file.
+- name: Configure Docker log rotation
+  become: true
+  ansible.builtin.copy:
+    content: >-
+      {{ (docker_daemon_raw.content | b64decode | from_json
+          if docker_daemon_raw.content is defined else {})
+         | combine({'log-driver': 'json-file',
+                    'log-opts': {'max-size': docker_log_max_size,
+                                 'max-file': docker_log_max_file}})
+         | to_nice_json }}
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart docker
+
+# Log options apply at container creation, so the daemon must be reloaded before the
+# container roles run later in this play.
+- name: Flush handlers so the daemon picks up the new configuration
+  ansible.builtin.meta: flush_handlers
+
+- name: Create the shared application network
+  become: false
+  community.docker.docker_network:
+    name: app_network
+    ipam_config:
+      - subnet: "{{ app_network_subnet }}"
+
 - name: Get a list of containers
   delegate_to: localhost
   become: false
@@ -117,6 +155,7 @@
 
 # The enable_* flags are the source of truth for what runs: flipping one off and
 # re-running actually tears the container down.
+# Covers containers created before the service label existed.
 - name: Stop and remove all the disabled containers
   become: false
   community.docker.docker_container:
@@ -126,6 +165,32 @@
   loop: "{{ containers.files }}"
   loop_control:
     label: "{{ item.path.split('/')[-1] }}"
+
+# verbose_output is required: without it the module strips each container to a fixed
+# field list that omits Labels.
+- name: Find every container this playbook manages
+  become: false
+  community.docker.docker_host_info:
+    containers: true
+    containers_all: true
+    containers_filters:
+      label: nas-setup.service
+    verbose_output: true
+  register: managed_containers
+
+- name: Stop and remove the sidecars of disabled services
+  become: false
+  vars:
+    service: "{{ (item.Labels | default({}))['nas-setup.service'] | default('') }}"
+  community.docker.docker_container:
+    name: "{{ item.Names[0] | regex_replace('^/', '') }}"
+    state: absent
+  when:
+    - service | length > 0
+    - not lookup('vars', 'enable_' + service, default=false)
+  loop: "{{ managed_containers.containers | default([]) }}"
+  loop_control:
+    label: "{{ item.Names[0] | regex_replace('^/', '') }}"
 
 - name: Handle persistent data
   become: false
@@ -151,8 +216,7 @@
         state: directory
         owner: "{{ username }}"
         group: "users"
-        mode: "ug=rwx,o=rx,g+s"
-        recurse: true
+        mode: "2750"
       when: not persistent_data.stat.exists
 
     - name: Restore the persistent data folder from the MergerFS array
@@ -165,12 +229,20 @@
       delegate_to: "{{ inventory_hostname }}"
       when: persistent_data_find.matched < 5 or not persistent_data.stat.exists
 
-- name: Chmod the data folder
+- name: Ensure the data folder itself is owned correctly
   become: true
   ansible.builtin.file:
     dest: "{{ docker_dir }}"
     state: directory
     owner: "{{ username }}"
     group: "users"
-    mode: "0775"
-    recurse: true
+    mode: "2750"
+
+# Ownership must be correct before this runs: containers that lost ownership of
+# their data reach it via the world bits, and stripping those locks them out.
+- name: Remove world access from the persistent data folder
+  become: true
+  ansible.builtin.command:
+    cmd: chmod -R o-rwx {{ docker_dir }}
+  when: docker_data_repair_permissions | default(false) | bool
+  changed_when: true

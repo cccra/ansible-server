@@ -2,9 +2,28 @@
 # Host-side NVIDIA setup shared by every service that requests the NVIDIA runtime
 # (jellyfin, immich, tdarr, openreader).
 
-# The driver branch to install. 535 is what this playbook has always used; bump it
-# deliberately, since a driver change generally requires a reboot.
-nvidia_driver_package: nvidia-driver-535-server
+# The driver branch to install.
+#
+# This was previously nvidia-driver-535-server, which Ubuntu has since turned into a
+# *transitional* package that pulls in 580 -- which is why the host already runs
+# 580.173.02 despite the playbook asking for 535. Naming 580 directly keeps the
+# playbook honest and avoids a failure if the transitional package is ever dropped.
+#
+# Do NOT chase newer branches on this host: the GPU is a Quadro P2000 (Pascal), and
+# 580 is the last branch to support Maxwell/Pascal/Volta. It is a Production Branch
+# with critical security updates through October 2028; 590 drops these GPUs entirely.
+#
+# `ubuntu-drivers devices` recommends the non-server `nvidia-driver-580` for this
+# card (the -server branch targets headless/datacenter GPUs). Both support NVENC, so
+# this stays on -server to match what is already installed -- switching branches is a
+# separate, reboot-requiring change.
+nvidia_driver_package: nvidia-driver-580-server
+
+# Deliberately `latest`, unlike every other package in this playbook.
+# libnvidia-container has to understand the library sonames shipped by the driver, so
+# an outdated container toolkit against a freshly upgraded driver is a classic way to
+# break GPU containers. Keep the toolkit moving with the driver.
+nvidia_toolkit_state: latest
 
 # Set to false to skip the automatic reboot after a driver/kernel update.
 nvidia_allow_reboot: true

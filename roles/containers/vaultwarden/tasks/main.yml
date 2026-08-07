@@ -3,9 +3,10 @@
   community.docker.docker_container:
     name: 'vaultwarden'
     image: "vaultwarden/server:latest"
+    labels: {"nas-setup.service": "vaultwarden"}
     networks:
       - name: app_network
-    pull: always
+    pull: "{{ container_pull }}"
     state: 'started'
     env:
       WEBSOCKET_ENABLED: "true"

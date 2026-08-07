@@ -3,7 +3,8 @@
   community.docker.docker_container:
     name: "jellyseerr"
     image: "ghcr.io/seerr-team/seerr:latest"
-    pull: always
+    labels: {"nas-setup.service": "jellyseerr"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     dns_servers:

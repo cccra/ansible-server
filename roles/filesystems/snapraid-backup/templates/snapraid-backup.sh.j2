@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+DOCKER_DIR="{{ docker_dir }}"
+ARRAY_ROOT="{{ mergerfs_root }}"
+DEST="${ARRAY_ROOT}/docker_data"
+LOG="/var/log/snapraid-backup.log"
+MAILTO="{{ email }}"
+HOST="{{ inventory_hostname }}"
+
+exec >>"${LOG}" 2>&1
+
+log() { echo "[$(date -Is)] $*"; }
+
+fail() {
+    log "FATAL: $*"
+    printf '%s\n\nSee %s on %s for the full log.\n' "$*" "${LOG}" "${HOST}" \
+        | mail -s "[${HOST}] snapraid-backup FAILED" "${MAILTO}" || true
+    exit 1
+}
+
+log "=== starting"
+
+# An unmounted array would make rsync --delete wipe the copy, then sync that into parity.
+mountpoint -q "${ARRAY_ROOT}" || fail "${ARRAY_ROOT} is not mounted"
+
+[ -n "$(ls -A "${DOCKER_DIR}" 2>/dev/null)" ] || fail "${DOCKER_DIR} is empty or missing"
+
+# Only what is running: `docker ps -a -q` would start deliberately-stopped containers too.
+running=$(docker ps -q)
+running_count=$(printf '%s' "$running" | grep -c . || true)
+
+if [ -n "$running" ]; then
+    log "stopping $running_count containers"
+    # shellcheck disable=SC2086
+    docker stop $running >/dev/null || fail "docker stop failed"
+fi
+
+log "mirroring ${DOCKER_DIR} -> ${DEST}"
+rsync -a --delete --exclude cache "${DOCKER_DIR}/" "${DEST}/"
+rsync_rc=$?
+
+if [ -n "$running" ]; then
+    log "starting $running_count containers"
+    # shellcheck disable=SC2086
+    docker start $running >/dev/null || log "WARNING: some containers did not restart"
+fi
+
+[ "${rsync_rc}" -eq 0 ] || fail "rsync exited ${rsync_rc}"
+
+log "running snapraid-runner"
+{{ snapraid_runner_command }} || fail "snapraid-runner exited $?"
+
+log "=== finished OK"

@@ -6,8 +6,8 @@
 - name: Create MySQL container for Gitea
   community.docker.docker_container:
     name: "gitea-mysql"
-    image: mysql:5.7
-    pull: always
+    image: "{{ mysql_image }}"
+    labels: "{{ watchtower_exclude_labels | combine({'nas-setup.service': 'gitea'}) }}"
     networks:
       - name: gitea_network
     volumes:
@@ -23,7 +23,8 @@
   community.docker.docker_container:
     name: gitea
     image: gitea/gitea:latest
-    pull: always
+    labels: {"nas-setup.service": "gitea"}
+    pull: "{{ container_pull }}"
     networks:
       - name: gitea_network
       - name: app_network

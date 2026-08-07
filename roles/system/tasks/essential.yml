@@ -17,23 +17,34 @@
         - iscsid
         - open-iscsi
 
-    - name: Install the apt mirror list
+    - name: Install the apt sources
       ansible.builtin.template:
-        src: sources.list.j2
+        src: ubuntu.sources.j2
+        dest: /etc/apt/sources.list.d/ubuntu.sources
+        owner: root
+        group: root
+        mode: "0644"
+        backup: true
+      tags: mirrors
+
+    - name: Empty the legacy sources.list
+      ansible.builtin.copy:
+        content: "# Managed by Ansible: see /etc/apt/sources.list.d/ubuntu.sources\n"
         dest: /etc/apt/sources.list
         owner: root
         group: root
         mode: "0644"
+        backup: true
       tags: mirrors
 
 - name: Generate the locale (Debian and Ubuntu)
-  when: ansible_os_family == 'Debian'
+  when: ansible_facts['os_family'] == 'Debian'
   community.general.locale_gen:
     name: "{{ locale }}"
     state: present
 
 - name: Update and upgrade apt packages (Debian and Ubuntu)
-  when: ansible_os_family == 'Debian'
+  when: ansible_facts['os_family'] == 'Debian'
   ansible.builtin.apt:
     upgrade: safe
     autoremove: true

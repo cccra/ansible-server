@@ -34,6 +34,11 @@ shell: /usr/bin/zsh
 
 docker_dir: /opt/docker/data
 
+docker_data_repair_permissions: false
+
+docker_log_max_size: "10m"
+docker_log_max_file: "3"
+
 dotfiles_repo: https://gitlab.com/cccra/dotfiles.git
 
 boot_drive_serial: ""
@@ -61,10 +66,31 @@ extra_packages:
   - p7zip
   - p7zip-full
 
+# Pinned to what Docker had already assigned, so the network is not recreated.
+app_network_subnet: "172.18.0.0/16"
+
+# Watchtower owns routine updates. Override with -e container_pull=always to make a
+# playbook run pull new images as well.
+container_pull: missing
+
+mariadb_image: "mariadb:12.3"
+
+mysql_image: "mysql:8.4"
+
+redis_image: "redis:8.10-alpine"
+
+watchtower_exclude_labels:
+  com.centurylinklabs.watchtower.enable: "false"
+
+# Six fields, leading one is seconds.
+watchtower_schedule: "0 0 5 * * *"
+
 # Apt mirrors
-version: jammy
 
 apt_mirror: http://ubuntu.mirrors.uk2.net/ubuntu
+
+# Suite comes from facts so it cannot drift from the installed release.
+apt_suite: "{{ ansible_facts['distribution_release'] }}"
 
 # Email credentials (for SMART and Snapraid error reporting)
 
@@ -92,7 +118,7 @@ security_ssh_port: 70
 security_sudoers_passwordless: ["{{ username }}"]
 security_autoupdate_reboot: true
 security_autoupdate_mail_to: "{{ email }}"
-security_autoupdate_reboot_time: "23:00"
+security_autoupdate_reboot_time: "02:00"
 security_autoupdate_mail_on_error: false
 
 # Enable/disable functionality
@@ -105,7 +131,6 @@ enable_wizarr: false
 enable_navidrome: false
 enable_audiobookshelf: false
 enable_jellyseerr: false
-enable_photoprism: false
 enable_immich: false
 enable_qbittorrent: false
 enable_sonarr: false
@@ -141,6 +166,9 @@ enable_crowdsec: false
 enable_iptables: false
 enable_fail2ban: false
 security_fail2ban_enabled: false
+
+# Container ports reachable from the internet; everything else is LAN-only.
+docker_wan_ports: []
 
 # Set to true to have fail2ban push bans to the Cloudflare firewall. Requires
 # cloudflare_firewall_token (vault).
@@ -233,17 +261,18 @@ snapraid_runner_smtp_host: "{{ email_smtp_host }}"
 snapraid_runner_smtp_port: "{{ email_smtp_port }}"
 snapraid_runner_command: "python3 {{ snapraid_runner_bin }} -c {{ snapraid_runner_conf }}"
 
-# Stop all the docker containers, backup the {{ docker_dir }} to the MergerFS pool, execute the snapraid runner and start the containers back up
-# Stopping the containers is necessary – backing up the data folder with the containers running will result in corrputed database files and no files can be changed during the Snapraid sync
-snapraid_runner_cron_jobs:
-  - {
-      job: "docker stop $(docker ps -q); rsync -avz --delete --exclude cache {{ docker_dir }}/ {{ mergerfs_root }}/docker_data; docker start $(docker ps -a -q) && {{ snapraid_runner_command }} ",
-      name: "snapraid_runner",
-      weekday: "0",
-      hour: "3",
-    }
+snapraid_runner_path: /opt/snapraid-runner/snapraid-runner
+snapraid_runner_bin: "{{ snapraid_runner_path }}.py"
+snapraid_runner_conf: "{{ snapraid_runner_path }}.conf"
 
-snapraid_runner_delete_threshold: 999999
+snapraid_runner_cron_jobs:
+  - job: "/usr/local/bin/snapraid-backup.sh"
+    name: "snapraid_runner"
+    weekday: "0"
+    hour: "3"
+
+# Guards against a bad mount or mass delete being committed to parity.
+snapraid_runner_delete_threshold: 250
 snapraid_runner_email_sendon: "error"
 snapraid_runner_use_ssl: true
 snapraid_content_files:
@@ -262,23 +291,49 @@ smartd_default_mail_recipients: ["{{ email }}"]
 # ---------------------------------------------------------------------------
 # Container service credentials
 # ---------------------------------------------------------------------------
-# These used to be hardcoded in the container roles and were therefore committed
-# to git. They are deliberately left UNDEFINED here so that a fresh clone fails
-# loudly rather than silently deploying a publicly known password.
+# Left UNDEFINED here so a fresh clone fails loudly rather than deploying a known
+# password. Define what you need in group_vars/<inventory>/vault.yml.
 #
-# Define them in group_vars/<your-inventory-name>/vault.yml:
+# Always required:
+#   host                          # base domain, e.g. example.com
+#   ssh_public_key                # authorised key for the login user
+#   password                      # login user's password
+#   email_password                # SMTP password for alerts
 #
-#   gitea_db_password:            # gitea MySQL user password
-#   gitea_db_root_password:       # gitea MySQL root password
-#   paperless_db_password:        # paperless MariaDB user password
-#   paperless_db_root_password:   # paperless MariaDB root password
-#   immich_db_password:           # immich Postgres password
-#   invoiceninja_db_password:     # invoiceninja MySQL user password
-#   invoiceninja_db_root_password:  # invoiceninja MySQL root password
-#   invoiceninja_app_key:         # invoiceninja Laravel APP_KEY
+# Required by the service that uses them:
+#   mysql_password                # nextcloud
+#   mysql_root_password           # nextcloud
+#   paperless_db_password         # paperless
+#   paperless_db_root_password    # paperless
+#   paperless_secret_key          # paperless; container refuses to start without it
+#   immich_db_password            # immich
+#   gitea_db_password             # gitea
+#   gitea_db_root_password        # gitea
+#   invoiceninja_db_password      # invoiceninja
+#   invoiceninja_db_root_password # invoiceninja
+#   invoiceninja_app_key          # invoiceninja Laravel APP_KEY
+#   tandoor_postgres_password     # tandoor
+#   tandoor_secret_key            # tandoor
+#   openreader_auth_secret        # openreader
+#   openreader_s3_access_key      # openreader embedded SeaweedFS
+#   openreader_s3_secret_key      # openreader embedded SeaweedFS
+#   homarr_key                    # homarr SECRET_ENCRYPTION_KEY
+#   linkding_admin                # linkding
+#   linkding_admin_password       # linkding
+#   spotify_id                    # navidrome
+#   spotify_secret                # navidrome
+#   sonarr_api                    # unpackerr
+#   radarr_api                    # unpackerr
+#   lidarr_api                    # unpackerr
+#   qbittorrent_wg_config         # block scalar; full WireGuard config
+#   cloudflare_dns_token          # cloudflare-ddns
+#   cloudflare_firewall_token     # fail2ban, only if enable_cloudflare
 #
-# IMPORTANT: for an ALREADY-RUNNING service, keep the value it was deployed with.
-# These environment variables are only read when the container initialises an
-# empty data directory, so a new value does not re-key an existing database -- it
-# just stops the application being able to log in. Rotating for real means an
-# ALTER USER against the running database.
+# These env vars are read only when a container initialises an EMPTY data
+# directory. Changing one does not re-key an existing database; it just stops the
+# application logging in. Rotating for real means an ALTER USER against the running
+# database.
+#
+# The gitea_* and invoiceninja_* values were rotated: the originals are recoverable
+# from this repository's public history and must never be reused. A stale data
+# directory still holds the old password.

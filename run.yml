@@ -131,6 +131,15 @@
         - smartd
       when: enable_nas_stuff | default(false)
 
+    # Deploys /usr/local/bin/snapraid-backup.sh, which the snapraid role's cron entry
+    # invokes. Has to come first so the script exists before the cron references it.
+    - role: filesystems/snapraid-backup
+      become: true
+      tags:
+        - snapraid-backup
+        - snapraid
+      when: enable_nas_stuff | default(false)
+
     - role: ironicbadger.snapraid
       become: true
       tags:
@@ -275,12 +284,6 @@
     #
     # Services
     #
-    - role: containers/photoprism
-      become: false
-      tags:
-        - photoprism
-        - containers
-      when: enable_photoprism | default(false)
 
     - role: containers/immich
       become: false

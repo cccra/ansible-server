@@ -13,5 +13,5 @@
           'aarch64': 'arm64',
           'arm64': 'arm64',
           'armv7l': 'armhf'
-        }.get(ansible_architecture, ansible_architecture)
+        }.get(ansible_facts['architecture'], ansible_facts['architecture'])
       }}

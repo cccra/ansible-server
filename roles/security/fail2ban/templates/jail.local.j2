@@ -1,10 +1,14 @@
 [DEFAULT]
+{% if enable_cloudflare | default(false) %}
 banaction = cloudflare
             iptables-allports
+{% else %}
+banaction = iptables-allports
+{% endif %}
 bantime  = -1
 findtime  = 600
 maxretry = 3
-ignoreip = 127.0.0.1/8 ::1 {{ lan_address }}/24
+ignoreip = 127.0.0.1/8 ::1 {{ lan_network }}
 action = %(action_mwl)s
 destemail = {{ email }}
 sender = {{ email }}
@@ -14,7 +18,7 @@ enabled = true
 port = {{ security_ssh_port }}
 filter = sshd
 
-{% for name in installed_configs %}
+{% for name in installed_configs | default([]) %}
 [{{ name }}]
 enabled  = true
 port     = http,https,{{ security_ssh_port }}

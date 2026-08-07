@@ -3,9 +3,10 @@
   community.docker.docker_container:
     name: 'wizarr'
     image: ghcr.io/wizarrrr/wizarr:latest
+    labels: {"nas-setup.service": "wizarr"}
     networks:
       - name: app_network
-    pull: always
+    pull: "{{ container_pull }}"
     state: 'started'
     volumes:
       - '{{ docker_dir }}/wizarr/database:/data/database'

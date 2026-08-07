@@ -1,0 +1,58 @@
+---
+- name: Create a wallabag network
+  community.docker.docker_network:
+    name: wallabag_network
+
+# - name: Make sure wallabag redis container is created and running
+#   docker_container:
+#     name: 'redis'
+#     image: 'redis:alpine'
+#     pull: yes
+#     networks:
+#       - name: wallabag_network
+#     env:
+#       'PUID': '{{ guid }}'
+#       'PGID': '{{ guid }}'
+#       'TZ': '{{ timezone }}'
+#     restart_policy: unless-stopped
+
+# - name: Make sure the Wallabag MariaDB container is created and running
+#   docker_container:
+#     name: "wallabag-mariadb"
+#     image: "mariadb:latest"
+#     pull: yes
+#     networks:
+#       - name: wallabag_network
+#     state: 'started'
+#     env:
+#       "TZ": "{{ timezone }}"
+#       "MYSQL_ROOT_PASSWORD": "{{ mysql_root_password }}"
+#     volumes:
+#       - "{{ docker_dir }}/wallabag/mariadb/mysql:/var/lib/mysql"
+#     restart_policy: unless-stopped
+
+- name: Make sure wallabag container is created and running
+  community.docker.docker_container:
+    name: 'wallabag'
+    image: 'wallabag/wallabag'
+    labels: {"nas-setup.service": "wallabag"}
+    pull: "{{ container_pull }}"
+    networks:
+      - name: wallabag_network
+      - name: app_network
+    env:
+      # 'MYSQL_ROOT_PASSWORD': '{{ mysql_root_password }}'
+      # 'SYMFONY__ENV__DATABASE_DRIVER': 'pdo_mysql'
+      # 'SYMFONY__ENV__DATABASE_HOST': 'wallabag-mariadb'
+      # 'SYMFONY__ENV__DATABASE_PORT': '3306'
+      # 'SYMFONY__ENV__DATABASE_NAME': 'wallabag_db'
+      # 'SYMFONY__ENV__DATABASE_USER': 'wallabag'
+      # 'SYMFONY__ENV__DATABASE_PASSWORD': '{{ mysql_password }}'
+      # 'SYMFONY__ENV__DATABASE_CHARSET': 'utf8mb4'
+      'SYMFONY__ENV__DOMAIN_NAME': 'https://wallabag.{{ host }}'
+      'PUID': '{{ guid }}'
+      'PGID': '{{ guid }}'
+      'TZ': '{{ timezone }}'
+    volumes:
+      - '{{ docker_dir }}/wallabag/images:/var/www/wallabag/web/assets/images'
+    restart_policy: unless-stopped

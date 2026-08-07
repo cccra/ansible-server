@@ -1,18 +1,19 @@
 ---
-- name: Restart relevant services
-  ansible.builtin.service:
-    name: "{{ item }}"
+- name: Reapply the firewall
+  ansible.builtin.systemd:
+    name: nas-firewall.service
+    state: restarted
+    daemon_reload: true
+
+# Rebuilding INPUT drops the jump rule fail2ban and the crowdsec bouncer insert.
+- name: Reinstall the ban-jump rules
+  ansible.builtin.systemd:
+    name: "{{ item.name }}"
     state: restarted
   loop:
-    - netfilter-persistent
-    - docker
-    # - crowdsec
-    # - crowdsec-firewall-bouncer
-  register: result
-  until: result is succeeded
-  retries: 2
-
-- name: Remove the default rules
-  ansible.builtin.file:
-    path: /etc/iptables/rules.v4
-    state: absent
+    - { name: fail2ban, enabled: "{{ enable_fail2ban | default(false) }}" }
+    - { name: crowdsec-firewall-bouncer, enabled: "{{ enable_crowdsec | default(false) }}" }
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | bool
+  failed_when: false

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+LAN="{{ lan_network }}"
+SSH_PORT="{{ security_ssh_port }}"
+
+# INPUT: traffic addressed to the host
+iptables -F INPUT
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+iptables -A INPUT -p tcp --dport "${SSH_PORT}" -m conntrack --ctstate NEW -j ACCEPT
+
+# DOCKER-USER: published container ports bypass INPUT entirely (Docker DNATs them
+# through FORWARD), so they can only be filtered here.
+iptables -N DOCKER-USER 2>/dev/null || true
+iptables -F DOCKER-USER
+
+iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+
+iptables -A DOCKER-USER -i docker0 -j RETURN
+iptables -A DOCKER-USER -i br-+ -j RETURN
+
+iptables -A DOCKER-USER -s "${LAN}" -j RETURN
+
+{% if docker_wan_ports | default([]) | length > 0 %}
+# ctorigdstport, not dport: the packet is already DNATed to the container's port.
+{% for port in docker_wan_ports %}
+iptables -A DOCKER-USER -p tcp -m conntrack --ctorigdstport {{ port }} -j RETURN
+{% endfor %}
+{% endif %}
+
+iptables -A DOCKER-USER -j DROP
+
+# Applied last so a failure above cannot lock out SSH.
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT

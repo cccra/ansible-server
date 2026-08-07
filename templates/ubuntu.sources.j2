@@ -1,0 +1,11 @@
+Types: deb
+URIs: {{ apt_mirror }}
+Suites: {{ apt_suite }} {{ apt_suite }}-updates {{ apt_suite }}-backports
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+Types: deb
+URIs: http://security.ubuntu.com/ubuntu/
+Suites: {{ apt_suite }}-security
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg

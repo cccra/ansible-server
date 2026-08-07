@@ -3,7 +3,8 @@
   community.docker.docker_container:
     name: "flaresolverr"
     image: "ghcr.io/flaresolverr/flaresolverr:latest"
-    pull: always
+    labels: {"nas-setup.service": "flaresolverr"}
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     state: 'started'

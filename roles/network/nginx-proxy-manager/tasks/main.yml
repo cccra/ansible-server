@@ -1,21 +1,18 @@
 ---
-- name: Create an internal network
-  community.docker.docker_network:
-    name: app_network
-
 - name: Make sure the nginx-proxy-manager container is created and running
   community.docker.docker_container:
     name: "nginx-proxy-manager"
     image: "jc21/nginx-proxy-manager:latest"
-    pull: always
+    pull: "{{ container_pull }}"
     networks:
       - name: app_network
     restart_policy: unless-stopped
     state: 'started'
     ports:
       - "80:80"
-      - "81:81"
       - "443:443"
+      # LAN only
+      - "{{ lan_address }}:81:81"
     volumes:
       - "{{ docker_dir }}/nginxproxymanager/data:/data"
       - "{{ docker_dir }}/nginxproxymanager/letsencrypt:/etc/letsencrypt"

@@ -3,9 +3,10 @@
   community.docker.docker_container:
     name: 'linkding'
     image: sissbruecker/linkding:latest
+    labels: {"nas-setup.service": "linkding"}
     networks:
       - name: app_network
-    pull: always
+    pull: "{{ container_pull }}"
     state: 'started'
     env:
       "LD_SUPERUSER_NAME": '{{ linkding_admin }}'

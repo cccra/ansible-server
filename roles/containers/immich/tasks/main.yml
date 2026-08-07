@@ -7,19 +7,23 @@
   community.docker.docker_container:
     name: "immich"
     image: ghcr.io/imagegenius/immich:latest
+    labels: {"nas-setup.service": "immich"}
     networks:
       - name: immich_network
       - name: app_network
     dns_servers:
       - 1.1.1.1
       - 8.8.8.8
-    pull: always
+    pull: "{{ container_pull }}"
     state: 'started'
     device_requests:
       - driver: nvidia
         count: -1
         capabilities:
           - gpu
+    # Force a recreate when the host driver changed -- the toolkit only injects the
+    # driver libraries when the container is created, never on a restart.
+    recreate: "{{ nvidia_driver_changed | default(false) }}"
     env:
       "PUID": "{{ guid }}"
       "PGID": "{{ guid }}"
@@ -41,19 +45,19 @@
 - name: Make sure the Immich Redis container is created and running
   community.docker.docker_container:
     name: "immich-redis"
-    image: redis:latest
+    image: "{{ redis_image }}"
+    labels: "{{ watchtower_exclude_labels | combine({'nas-setup.service': 'immich'}) }}"
     networks:
       - name: immich_network
-    pull: always
     restart_policy: unless-stopped
 
 - name: Make sure the Immich Postgres container is created and running
   community.docker.docker_container:
     name: "immich-postgres"
     image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    labels: "{{ watchtower_exclude_labels | combine({'nas-setup.service': 'immich'}) }}"
     networks:
       - name: immich_network
-    pull: always
     env:
       "POSTGRES_USER": "postgres"
       "POSTGRES_PASSWORD": "{{ immich_db_password }}"
