@@ -1,11 +1,15 @@
 ---
+- name: Create a vaultwarden network
+  community.docker.docker_network:
+    name: vaultwarden_network
+
 - name: Make sure the Vaultwarden container is created and running
   community.docker.docker_container:
     name: 'vaultwarden'
     image: "vaultwarden/server:latest"
     labels: {"nas-setup.service": "vaultwarden"}
     networks:
-      - name: app_network
+      - name: vaultwarden_network
     pull: "{{ container_pull }}"
     state: 'started'
     env:

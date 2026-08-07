@@ -27,7 +27,6 @@
     pull: "{{ container_pull }}"
     networks:
       - name: gitea_network
-      - name: app_network
     volumes:
       - "{{ docker_dir }}/gitea/data:/data"
     ports:

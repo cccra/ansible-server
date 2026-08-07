@@ -4,12 +4,15 @@
 # is what a `--tags containers` run needs to reconcile the fleet against the
 # enable_* flags before the individual service roles run.
 
-- name: Create the shared application network
+# Created here as well as in the individual service roles: a service role run on its
+# own (--tags nextcloud) has to be able to create its own network, and NPM has to be
+# able to join every network up front whether or not the service behind it is enabled.
+- name: Create the container networks
   become: false
   community.docker.docker_network:
-    name: app_network
-    ipam_config:
-      - subnet: "{{ app_network_subnet }}"
+    name: "{{ item }}"
+    ipam_config: "{{ [{'subnet': network_subnets[item]}] if item in network_subnets else omit }}"
+  loop: "{{ proxied_networks }}"
 
 - name: Get a list of containers
   delegate_to: localhost

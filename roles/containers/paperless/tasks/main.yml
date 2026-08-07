@@ -37,7 +37,6 @@
     labels: {"nas-setup.service": "paperless"}
     pull: "{{ container_pull }}"
     networks:
-      - name: app_network
       - name: paperless_network
     volumes:
       - "{{ docker_dir }}/paperless/config:/config"

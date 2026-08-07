@@ -6,7 +6,7 @@
     labels: {"nas-setup.service": "lidarr"}
     pull: "{{ container_pull }}"
     networks:
-      - name: app_network
+      - name: media_network
     state: 'started'
     dns_servers:
       - 1.1.1.1

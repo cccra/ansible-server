@@ -6,7 +6,7 @@
     labels: {"nas-setup.service": "radarr"}
     pull: "{{ container_pull }}"
     networks:
-      - name: app_network
+      - name: media_network
     state: 'started'
     env:
       "PUID": "{{ guid }}"

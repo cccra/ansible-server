@@ -1,11 +1,18 @@
 ---
+# Isolated because this Homarr has no live integrations configured -- it only serves
+# links. Enabling the sonarr/radarr/qbittorrent widgets would mean joining
+# media_network as well.
+- name: Create a homarr network
+  community.docker.docker_network:
+    name: homarr_network
+
 - name: Make sure the homarr container is created and running
   community.docker.docker_container:
     name: 'homarr'
     image: ghcr.io/homarr-labs/homarr:latest
     labels: {"nas-setup.service": "homarr"}
     networks:
-      - name: app_network
+      - name: homarr_network
     pull: "{{ container_pull }}"
     state: 'started'
     env:

@@ -10,7 +10,6 @@
     labels: {"nas-setup.service": "immich"}
     networks:
       - name: immich_network
-      - name: app_network
     dns_servers:
       - 1.1.1.1
       - 8.8.8.8

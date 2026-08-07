@@ -4,8 +4,14 @@
     name: "nginx-proxy-manager"
     image: "jc21/nginx-proxy-manager:latest"
     pull: "{{ container_pull }}"
-    networks:
-      - name: app_network
+    # The proxy is the one container that legitimately reaches every zone, so it
+    # joins all of them. Upstreams stay as container names -- Docker's embedded DNS
+    # resolves those over whichever network the two containers share.
+    networks: "{{ proxied_networks | map('community.general.dict_kv', 'name') | list }}"
+    # Without this the module leaves the container attached to networks that have
+    # been removed from the list above.
+    comparisons:
+      networks: strict
     restart_policy: unless-stopped
     state: 'started'
     ports:

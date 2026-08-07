@@ -66,8 +66,52 @@ extra_packages:
   - p7zip
   - p7zip-full
 
+# Network zones.
+#
+# Services are grouped so that only containers which actually talk to each other
+# share a wire:
+#
+#   media_network  the arr/download/streaming mesh, which is genuinely a mesh:
+#                  the arrs drive qbittorrent, prowlarr drives flaresolverr,
+#                  unpackerr and bazarr drive the arrs, jellyseerr drives
+#                  jellyfin and the arrs. Flat inside, by design.
+#   <name>_network one per self-contained service holding data worth protecting
+#                  (vaultwarden, nextcloud, immich, paperless, gitea,
+#                  invoiceninja) plus homarr, which has no integrations enabled.
+#   app_network    everything left over: low-stakes services that talk to nothing
+#                  but the proxy.
+#
+# The point is the boundary, not isolation for its own sake: a compromise of
+# qbittorrent or flaresolverr can no longer reach Vaultwarden, the documents in
+# Paperless, or the photos in Immich.
+#
 # Pinned to what Docker had already assigned, so the network is not recreated.
 app_network_subnet: "172.18.0.0/16"
+
+media_network_subnet: "172.19.0.0/16"
+
+# Every network nginx-proxy-manager has to join to reach what it proxies. Docker's
+# embedded DNS resolves a container name over any network the two share, so NPM's
+# existing upstreams (http://jellyfin:8096 and friends) keep working untouched.
+#
+# roles/container-fleet creates all of these unconditionally, so NPM's attachment
+# list -- and therefore NPM itself -- does not churn when a service is toggled.
+proxied_networks:
+  - app_network
+  - media_network
+  - vaultwarden_network
+  - homarr_network
+  - nextcloud_network
+  - immich_network
+  - paperless_network
+  - gitea_network
+  - invoiceninja_network
+
+# Only the two shared zones get a pinned subnet; the per-service networks take
+# whatever Docker's default pool hands out.
+network_subnets:
+  app_network: "{{ app_network_subnet }}"
+  media_network: "{{ media_network_subnet }}"
 
 # Watchtower owns routine updates. Override with -e container_pull=always to make a
 # playbook run pull new images as well.

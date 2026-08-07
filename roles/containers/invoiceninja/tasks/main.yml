@@ -26,7 +26,6 @@
     labels: {"nas-setup.service": "invoiceninja"}
     pull: "{{ container_pull }}"
     networks:
-      - name: app_network
       - name: invoiceninja_network
     volumes:
       - "{{ docker_dir }}/invoiceninja/public:/var/app/public"
