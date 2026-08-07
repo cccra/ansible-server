@@ -96,6 +96,26 @@ Everything is gated by `enable_*` flags, all defaulting to `false` in
 `group_vars/<inventory_name>/vars.yml` — never by editing the role list in
 `run.yml`.
 
+### Container networks
+
+Containers are grouped into zones so that only services which actually talk to each
+other share a network:
+
+| Network | Contents |
+|---|---|
+| `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr. Flat internally — these genuinely need to reach each other. |
+| `<service>_network` | One per self-contained service worth protecting: vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja, homarr. |
+| `app_network` | Everything else — low-stakes services that only need to be reachable by the proxy. |
+
+nginx-proxy-manager joins every network listed in `proxied_networks`, so its upstreams
+stay plain container names (`http://jellyfin:8096`); Docker's embedded DNS resolves
+those over any shared network. Adding a service to a new network means adding that
+network to `proxied_networks` in `group_vars/all/vars.yml`.
+
+If you enable Homarr's live integrations (sonarr/radarr/qbittorrent/jellyfin widgets),
+add `media_network` to its container as well — it is isolated on the assumption that
+it only serves links.
+
 Variable precedence:
 
 | File | Purpose | Tracked in git |

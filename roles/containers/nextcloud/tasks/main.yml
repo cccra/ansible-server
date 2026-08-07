@@ -32,7 +32,6 @@
     labels: {"nas-setup.service": "nextcloud"}
     pull: "{{ container_pull }}"
     networks:
-      - name: app_network
       - name: nextcloud_network
     state: 'started'
     env:

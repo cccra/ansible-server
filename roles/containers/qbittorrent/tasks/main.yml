@@ -22,7 +22,7 @@
     labels: {"nas-setup.service": "qbittorrent"}
     pull: "{{ container_pull }}"
     networks:
-      - name: app_network
+      - name: media_network
     # wg-quick sets src_valid_mark itself; unprivileged, /proc/sys is read-only and
     # the tunnel fails to come up.
     privileged: true
@@ -40,7 +40,10 @@
       "VPN_CLIENT": "wireguard"
       "ENABLE_PRIVOXY": "yes"
       "NAME_SERVERS": "{{ ','.join(dns_nameservers) }}"
-      "LAN_NETWORK": "{{ app_network_subnet }}, {{ lan_network }}"
+      # Must track whichever network this container is on: the VPN image drops
+      # inbound traffic from anywhere outside LAN_NETWORK, so leaving app_network
+      # here would cut the arrs and NPM off from the WebUI.
+      "LAN_NETWORK": "{{ media_network_subnet }}, {{ lan_network }}"
       "UMASK": "000"
       "PUID": "{{ guid }}"
       "PGID": "{{ guid }}"

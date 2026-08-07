@@ -6,7 +6,7 @@
     labels: {"nas-setup.service": "jellyseerr"}
     pull: "{{ container_pull }}"
     networks:
-      - name: app_network
+      - name: media_network
     dns_servers:
       - 1.1.1.1
       - 8.8.8.8
