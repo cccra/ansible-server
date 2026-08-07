@@ -77,16 +77,16 @@ sudo for the main login user.
 To only update the Docker containers on subsequent runs:
 
 ```bash
-ansible-playbook run.yml -l your-host-here --tags="port,containers"
+ansible-playbook run.yml -l your-host-here --tags="containers"
 ```
 
-The `port` tag must be included — it runs the SSH port probe that the rest of the
-playbook depends on.
+The SSH port probe is tagged `always`, so it runs on every invocation — tagged or
+not — and never needs to be requested explicitly.
 
 Every role has a tag matching its name, so a single service can be redeployed with:
 
 ```bash
-ansible-playbook run.yml -l your-host-here --tags="port,jellyfin"
+ansible-playbook run.yml -l your-host-here --tags="jellyfin"
 ```
 
 ## Configuration

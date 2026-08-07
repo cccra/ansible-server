@@ -7,10 +7,14 @@
   gather_facts: false
 
   pre_tasks:
+    # `always` so tagged runs (--tags jellyfin, --tags containers, ...) don't have to
+    # remember to include the probe -- everything after it depends on the connection
+    # details it discovers.
     - name: Determine which SSH port and credentials work
       ansible.builtin.import_tasks: tasks/ssh_juggle_port.yml
       tags:
         - port
+        - always
 
 - name: Configure the NAS host and its services
   hosts: all
@@ -50,6 +54,14 @@
     - role: docker
       tags:
         - docker
+
+    # Fleet reconciliation: shared network, teardown of disabled services, persistent
+    # data. Tagged `containers` so a containers-only run still reconciles the fleet
+    # against the enable_* flags before the service roles run.
+    - role: container-fleet
+      tags:
+        - container-fleet
+        - containers
 
     # Host-side GPU setup (driver + container toolkit). Required by every service
     # that requests the NVIDIA runtime via `device_requests`, not just Jellyfin.
