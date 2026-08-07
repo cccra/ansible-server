@@ -93,6 +93,14 @@
     groups:
       - docker
     append: true
+  register: docker_group_membership
+
+# The open SSH session keeps the pre-change group list, so on a fresh host every
+# later `become: false` Docker task would fail with a permission error until the
+# connection is rebuilt.
+- name: Reset the connection so the docker group takes effect
+  ansible.builtin.meta: reset_connection
+  when: docker_group_membership is changed
 
 - name: Install the Docker module for Python
   ansible.builtin.package:
@@ -136,113 +144,5 @@
 - name: Flush handlers so the daemon picks up the new configuration
   ansible.builtin.meta: flush_handlers
 
-- name: Create the shared application network
-  become: false
-  community.docker.docker_network:
-    name: app_network
-    ipam_config:
-      - subnet: "{{ app_network_subnet }}"
-
-- name: Get a list of containers
-  delegate_to: localhost
-  become: false
-  ansible.builtin.find:
-    paths:
-      - "roles/containers"
-    file_type: directory
-    recurse: false
-  register: containers
-
-# The enable_* flags are the source of truth for what runs: flipping one off and
-# re-running actually tears the container down.
-# Covers containers created before the service label existed.
-- name: Stop and remove all the disabled containers
-  become: false
-  community.docker.docker_container:
-    name: "{{ item.path.split('/')[-1] }}"
-    state: absent
-  when: not lookup('vars', 'enable_' + item.path.split('/')[-1], default=false)
-  loop: "{{ containers.files }}"
-  loop_control:
-    label: "{{ item.path.split('/')[-1] }}"
-
-# verbose_output is required: without it the module strips each container to a fixed
-# field list that omits Labels.
-- name: Find every container this playbook manages
-  become: false
-  community.docker.docker_host_info:
-    containers: true
-    containers_all: true
-    containers_filters:
-      label: nas-setup.service
-    verbose_output: true
-  register: managed_containers
-
-- name: Stop and remove the sidecars of disabled services
-  become: false
-  vars:
-    service: "{{ (item.Labels | default({}))['nas-setup.service'] | default('') }}"
-  community.docker.docker_container:
-    name: "{{ item.Names[0] | regex_replace('^/', '') }}"
-    state: absent
-  when:
-    - service | length > 0
-    - not lookup('vars', 'enable_' + service, default=false)
-  loop: "{{ managed_containers.containers | default([]) }}"
-  loop_control:
-    label: "{{ item.Names[0] | regex_replace('^/', '') }}"
-
-- name: Handle persistent data
-  become: false
-  when: enable_nas_stuff | default(false)
-  block:
-    - name: Check if the persistent data folder exists on the remote machine
-      ansible.builtin.stat:
-        path: "{{ docker_dir }}"
-      register: persistent_data
-
-    - name: Check if the persistent data folder is empty
-      ansible.builtin.find:
-        paths:
-          - "{{ docker_dir }}/"
-        file_type: directory
-        depth: 2
-      register: persistent_data_find
-
-    - name: Create the persistent data folder on the remote machine
-      become: true
-      ansible.builtin.file:
-        dest: "{{ docker_dir }}"
-        state: directory
-        owner: "{{ username }}"
-        group: "users"
-        mode: "2750"
-      when: not persistent_data.stat.exists
-
-    - name: Restore the persistent data folder from the MergerFS array
-      become: true
-      ansible.posix.synchronize:
-        src: "{{ mergerfs_root }}/docker_data/"
-        dest: "{{ docker_dir }}/"
-        delete: true
-        recursive: true
-      delegate_to: "{{ inventory_hostname }}"
-      when: persistent_data_find.matched < 5 or not persistent_data.stat.exists
-
-- name: Ensure the data folder itself is owned correctly
-  become: true
-  ansible.builtin.file:
-    dest: "{{ docker_dir }}"
-    state: directory
-    owner: "{{ username }}"
-    group: "users"
-    mode: "2750"
-
-# Ownership must be correct before this runs: containers that lost ownership of
-# their data reach it via the world bits, and stripping those locks them out.
-- name: Remove world access from the persistent data folder
-  become: true
-  ansible.builtin.command:
-    cmd: chmod -R o-rwx {{ docker_dir }}
-  when: docker_data_repair_permissions | default(false) | bool
-  changed_when: true
+# The shared app_network, teardown of disabled services, and the persistent data
+# directory live in roles/container-fleet -- this role only installs the engine.
