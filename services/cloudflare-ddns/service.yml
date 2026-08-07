@@ -1,0 +1,7 @@
+---
+containers:
+  - image: oznu/cloudflare-ddns:latest
+    env:
+      API_KEY: "{{ cloudflare_dns_token }}"
+      ZONE: "{{ host }}"
+      PROXIED: "false"

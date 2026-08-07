@@ -1,0 +1,49 @@
+---
+network:
+  name: immich_network
+
+containers:
+  - image: ghcr.io/imagegenius/immich:latest
+    networks:
+      - name: immich_network
+    dns_servers:
+      - 1.1.1.1
+      - 8.8.8.8
+    device_requests:
+      - driver: nvidia
+        count: -1
+        capabilities:
+          - gpu
+    # Force a recreate when the host driver changed -- the toolkit only injects the
+    # driver libraries when the container is created, never on a restart.
+    recreate: "{{ nvidia_driver_changed | default(false) }}"
+    env:
+      DB_HOSTNAME: immich-postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: "{{ immich_db_password }}"
+      DB_DATABASE_NAME: immich
+      REDIS_HOSTNAME: immich-redis
+      MACHINE_LEARNING_GPU_ACCELERATION: cuda
+    volumes:
+      - "{{ docker_dir }}/immich/config:/config"
+      - "{{ mergerfs_root }}/Immich/photos:/photos"
+      - "{{ mergerfs_root }}/Nextcloud/{{ username }}/files/Photos:/import/Photos:ro"
+      - "{{ mergerfs_root }}/Nextcloud/{{ username }}/files/Media:/import/Media:ro"
+
+  - name: immich-redis
+    sidecar: true
+    image: "{{ redis_image }}"
+    networks:
+      - name: immich_network
+
+  - name: immich-postgres
+    sidecar: true
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    networks:
+      - name: immich_network
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "{{ immich_db_password }}"
+      POSTGRES_DB: immich
+    volumes:
+      - "{{ docker_dir }}/immich/db:/var/lib/postgresql/data"

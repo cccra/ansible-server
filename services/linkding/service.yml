@@ -1,0 +1,10 @@
+---
+containers:
+  - image: sissbruecker/linkding:latest
+    networks:
+      - name: app_network
+    env:
+      LD_SUPERUSER_NAME: "{{ linkding_admin }}"
+      LD_SUPERUSER_PASSWORD: "{{ linkding_admin_password }}"
+    volumes:
+      - "{{ docker_dir }}/linkding/data:/etc/linkding/data"

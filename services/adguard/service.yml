@@ -1,0 +1,22 @@
+---
+network:
+  name: adguard_network
+  ipam_config:
+    - subnet: "{{ '.'.join(adguard_address.split('.')[0:3]) }}.0/27"
+      gateway: "{{ '.'.join(adguard_address.split('.')[0:3]) }}.1"
+
+containers:
+  - image: adguard/adguardhome:latest
+    networks:
+      - name: adguard_network
+        ipv4_address: "{{ adguard_address }}"
+      - name: app_network
+    capabilities:
+      - net_admin
+    ports:
+      - "{{ lan_address }}:3030:80"
+      - "{{ lan_address }}:53:53/tcp"
+      - "{{ lan_address }}:53:53/udp"
+    volumes:
+      - "{{ docker_dir }}/adguard/work:/opt/adguardhome/work"
+      - "{{ docker_dir }}/adguard/conf:/opt/adguardhome/conf"

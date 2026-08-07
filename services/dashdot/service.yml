@@ -1,0 +1,5 @@
+---
+containers:
+  - image: mauricenino/dashdot
+    networks:
+      - name: app_network

@@ -1,0 +1,10 @@
+---
+containers:
+  - image: linuxserver/grocy:latest
+    networks:
+      - name: app_network
+    env:
+      USER_UID: "1000"
+      USER_GID: "1000"
+    volumes:
+      - "{{ docker_dir }}/grocy/config:/config"

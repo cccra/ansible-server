@@ -1,0 +1,7 @@
+---
+containers:
+  - image: ghcr.io/wizarrrr/wizarr:latest
+    networks:
+      - name: media_network
+    volumes:
+      - "{{ docker_dir }}/wizarr/database:/data/database"

@@ -1,0 +1,7 @@
+---
+- name: Schedule a RSgain scan at 2 AM every day
+  ansible.builtin.cron:
+    name: Scan the Music library
+    hour: "2"
+    minute: "0"
+    job: "docker run --rm -v {{ mergerfs_root }}/Media/Music:/mnt rsgain easy -S -m MAX /mnt"

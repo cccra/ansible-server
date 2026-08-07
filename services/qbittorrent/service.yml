@@ -1,0 +1,32 @@
+---
+hook: true
+
+containers:
+  - image: binhex/arch-qbittorrentvpn:5.1.1-1-01
+    networks:
+      - name: media_network
+    # wg-quick sets src_valid_mark itself; unprivileged, /proc/sys is read-only and
+    # the tunnel fails to come up.
+    privileged: true
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: "1"
+    capabilities:
+      - net_admin
+    ports:
+      - "{{ lan_address }}:8118:8118"
+    env:
+      WEBUI_PORT: "6017"
+      VPN_ENABLED: "yes"
+      VPN_PROV: custom
+      VPN_CLIENT: wireguard
+      ENABLE_PRIVOXY: "yes"
+      NAME_SERVERS: "{{ ','.join(dns_nameservers) }}"
+      # Must track whichever network this container is on: the VPN image drops
+      # inbound traffic from anywhere outside LAN_NETWORK, so leaving app_network
+      # here would cut the arrs and NPM off from the WebUI.
+      LAN_NETWORK: "{{ media_network_subnet }}, {{ lan_network }}"
+      UMASK: "000"
+    volumes:
+      - "{{ docker_dir }}/qbittorrent/data:/data"
+      - "{{ docker_dir }}/qbittorrent/config:/config"
+      - "{{ mergerfs_root }}:/tank"

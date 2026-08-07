@@ -1,0 +1,9 @@
+---
+containers:
+  - image: ghcr.io/advplyr/audiobookshelf:latest
+    networks:
+      - name: app_network
+    volumes:
+      - "{{ docker_dir }}/audiobookshelf/metadata:/metadata"
+      - "{{ docker_dir }}/audiobookshelf/config:/config"
+      - "{{ mergerfs_root }}/Media/Audiobooks:/audiobooks"

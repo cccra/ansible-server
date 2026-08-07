@@ -1,0 +1,51 @@
+---
+- name: "{{ service }} | load the definition"
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/services/{{ service }}/service.yml"
+    name: svc
+
+- name: "{{ service }} | create its private network"
+  become: false
+  community.docker.docker_network:
+    name: "{{ svc.network.name }}"
+    ipam_config: "{{ svc.network.ipam_config | default(omit) }}"
+  when: svc.network is defined
+
+# Only jellyfin, lidarr, nextcloud and qbittorrent need one. The hook runs before the
+# containers so it can set facts they interpolate -- qbittorrent's LAN_NETWORK reads
+# media_network's Docker-assigned subnet back this way.
+- name: "{{ service }} | run its pre-deploy hook"
+  ansible.builtin.include_tasks:
+    file: "{{ playbook_dir }}/services/{{ service }}/hook.yml"
+  when: svc.hook | default(false)
+
+# Each entry in svc.containers is docker_container parameters as the module documents
+# them, so there is nothing to translate when copying settings out of upstream docs.
+# The engine only supplies the repo's conventions underneath: name, labels, pull,
+# state, restart policy, the shared env block, the localtime mount, and the strict
+# network comparison that keeps the zone split from silently eroding.
+- name: "{{ service }} | deploy its containers"
+  become: false
+  vars:
+    _conventions:
+      name: "{{ service }}"
+      labels: >-
+        {{ (watchtower_exclude_labels if item.sidecar | default(false) else {})
+           | combine({'nas-setup.service': service}) }}
+      pull: "{{ container_pull }}"
+      state: started
+      restart_policy: unless-stopped
+    # Merged rather than overridden, so a service adds to them instead of restating
+    # them. Applied after the service's own keys, hence the second combine below.
+    _merged:
+      env: "{{ container_env_defaults | combine(item.env | default({})) }}"
+      volumes: "{{ container_volume_defaults + (item.volumes | default([])) }}"
+    # Only meaningful for a container that declares networks, so it is combined in
+    # rather than set to an empty dict on the ones that do not.
+    _strict: "{{ {'comparisons': {'networks': 'strict'}} if item.networks is defined else {} }}"
+  community.docker.docker_container: >-
+    {{ _conventions | combine(item) | combine(_merged) | combine(_strict)
+       | dict2items | rejectattr('key', 'in', container_meta_keys) | items2dict }}
+  loop: "{{ svc.containers }}"
+  loop_control:
+    label: "{{ item.name | default(service) }}"

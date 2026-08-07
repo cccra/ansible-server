@@ -1,0 +1,35 @@
+---
+network:
+  name: tandoor_network
+
+containers:
+  - name: tandoor-postgres
+    sidecar: true
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    networks:
+      - name: tandoor_network
+    env:
+      POSTGRES_USER: djangodb
+      POSTGRES_PASSWORD: "{{ tandoor_postgres_password }}"
+      POSTGRES_DB: djangodb
+    volumes:
+      - "{{ docker_dir }}/tandoor/db:/var/lib/postgresql/data"
+
+  - image: vabene1111/recipes:latest
+    networks:
+      - name: app_network
+      - name: tandoor_network
+    env:
+      USER_UID: "{{ guid }}"
+      USER_GID: "{{ guid }}"
+      SECRET_KEY: "{{ tandoor_secret_key }}"
+      DB_ENGINE: django.db.backends.postgresql
+      POSTGRES_HOST: tandoor-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: djangodb
+      POSTGRES_PASSWORD: "{{ tandoor_postgres_password }}"
+      POSTGRES_DB: djangodb
+      ALLOWED_HOSTS: "tandoor.{{ host }}"
+    volumes:
+      - "{{ docker_dir }}/tandoor/staticfiles:/org/recipies/staticfiles"
+      - "{{ docker_dir }}/tandoor/mediafiles:/org/recipies/mediafiles"

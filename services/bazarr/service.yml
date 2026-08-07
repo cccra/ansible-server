@@ -1,0 +1,8 @@
+---
+containers:
+  - image: linuxserver/bazarr:latest
+    networks:
+      - name: media_network
+    volumes:
+      - "{{ docker_dir }}/bazarr:/config"
+      - "{{ mergerfs_root }}:/tank"

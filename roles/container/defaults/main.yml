@@ -1,0 +1,15 @@
+---
+# Merged into every container's env; a service definition overriding a key wins.
+container_env_defaults:
+  PUID: "{{ guid }}"
+  PGID: "{{ guid }}"
+  TZ: "{{ timezone }}"
+
+# Prepended to every container's volume list.
+container_volume_defaults:
+  - "/etc/localtime:/etc/localtime:ro"
+
+# Keys the engine consumes itself, stripped before the rest is handed to
+# docker_container -- which rejects parameters it does not know.
+container_meta_keys:
+  - sidecar

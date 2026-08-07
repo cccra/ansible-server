@@ -1,0 +1,36 @@
+---
+network:
+  name: gitea_network
+
+containers:
+  - name: gitea-mysql
+    sidecar: true
+    image: "{{ mysql_image }}"
+    networks:
+      - name: gitea_network
+    env:
+      MYSQL_DATABASE: gitea
+      MYSQL_USER: gitea
+      MYSQL_PASSWORD: "{{ gitea_db_password }}"
+      MYSQL_ROOT_PASSWORD: "{{ gitea_db_root_password }}"
+    volumes:
+      - "{{ docker_dir }}/gitea/mysql:/var/lib/mysql:rw"
+
+  - image: gitea/gitea:latest
+    networks:
+      - name: gitea_network
+    ports:
+      - "222:22"
+    env:
+      DB_TYPE: mysql
+      DB_HOST: "gitea-mysql:3306"
+      DB_NAME: gitea
+      DB_USER: gitea
+      DB_PASSWD: "{{ gitea_db_password }}"
+      RUN_MODE: prod
+      USER_UID: "1000"
+      USER_GID: "1000"
+      DISABLE_REGISTRATION: "true"
+      DEFAULT_THEME: arc-green
+    volumes:
+      - "{{ docker_dir }}/gitea/data:/data"

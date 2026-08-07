@@ -1,0 +1,11 @@
+---
+containers:
+  - image: deluan/navidrome:develop
+    networks:
+      - name: app_network
+    env:
+      ND_SPOTIFY_ID: "{{ spotify_id }}"
+      ND_SPOTIFY_SECRET: "{{ spotify_secret }}"
+    volumes:
+      - "{{ docker_dir }}/navidrome:/data"
+      - "{{ mergerfs_root }}/Media/Music:/music:ro"

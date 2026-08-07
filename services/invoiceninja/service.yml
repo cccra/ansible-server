@@ -1,0 +1,38 @@
+---
+network:
+  name: invoiceninja_network
+
+containers:
+  - name: invoiceninja-mysql
+    sidecar: true
+    image: "{{ mysql_image }}"
+    networks:
+      - name: invoiceninja_network
+    env:
+      MYSQL_DATABASE: invoiceninja
+      MYSQL_USER: invoiceninja
+      MYSQL_PASSWORD: "{{ invoiceninja_db_password }}"
+      MYSQL_ROOT_PASSWORD: "{{ invoiceninja_db_root_password }}"
+    volumes:
+      - "{{ docker_dir }}/invoiceninja/mysql:/var/lib/mysql:rw"
+
+  - image: invoiceninja/invoiceninja:latest
+    networks:
+      - name: invoiceninja_network
+    env:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      APP_ENV: production
+      APP_DEBUG: "0"
+      APP_URL: "https://invoiceninja.{{ host }}"
+      APP_KEY: "{{ invoiceninja_app_key }}"
+      APP_CIPHER: AES-256-CBC
+      DB_TYPE: mysql
+      DB_STRICT: "false"
+      DB_HOST: invoiceninja-mysql
+      DB_DATABASE: invoiceninja
+      DB_USERNAME: invoiceninja
+      DB_PASSWORD: "{{ invoiceninja_db_password }}"
+    volumes:
+      - "{{ docker_dir }}/invoiceninja/public:/var/app/public"
+      - "{{ docker_dir }}/invoiceninja/storage:/var/app/storage"

@@ -1,0 +1,10 @@
+---
+containers:
+  - image: ghcr.io/seerr-team/seerr:latest
+    networks:
+      - name: media_network
+    dns_servers:
+      - 1.1.1.1
+      - 8.8.8.8
+    volumes:
+      - "{{ docker_dir }}/seerr:/app/config"

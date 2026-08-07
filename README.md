@@ -83,18 +83,50 @@ ansible-playbook run.yml -l your-host-here --tags="containers"
 The SSH port probe is tagged `always`, so it runs on every invocation — tagged or
 not — and never needs to be requested explicitly.
 
-Every role has a tag matching its name, so a single service can be redeployed with:
+Every role has a tag matching its name. The container services are all deployed by one
+role in a loop, and a tag cannot select an item inside a loop, so a single service is
+redeployed by name instead:
 
 ```bash
-ansible-playbook run.yml -l your-host-here --tags="jellyfin"
+ansible-playbook run.yml -l your-host-here --tags="containers" -e service_filter=jellyfin
+ansible-playbook run.yml -l your-host-here --tags="containers" -e service_filter=sonarr,radarr
 ```
 
 ## Configuration
 
 Everything is gated by `enable_*` flags, all defaulting to `false` in
-`group_vars/all/vars.yml`. Turn a service on by overriding its flag in your own
+`group_vars/all/vars.yml`. Container services use the `enable_container_<name>`
+namespace; the rest (`enable_nas_stuff`, `enable_fail2ban`, ...) are bare
+`enable_<thing>`. Turn a service on by overriding its flag in your own
 `group_vars/<inventory_name>/vars.yml` — never by editing the role list in
 `run.yml`.
+
+### Adding a service
+
+Two edits. Create `services/<name>/service.yml`, which is a list of
+[`community.docker.docker_container`](https://docs.ansible.com/ansible/latest/collections/community/docker/docker_container_module.html)
+parameters as the module documents them:
+
+```yaml
+containers:
+  - image: ghcr.io/linuxserver/sonarr:latest
+    networks:
+      - name: media_network
+    volumes:
+      - "{{ docker_dir }}/sonarr:/config"
+      - "{{ mergerfs_root }}:/tank"
+```
+
+Then add `enable_container_<name>: false` to `group_vars/all/vars.yml`. `run.yml` is not
+touched.
+
+The container name, the `nas-setup.service` label, `pull`, `state`, the restart policy,
+the `PUID`/`PGID`/`TZ` block, the `/etc/localtime` mount and the strict network
+comparison are all supplied by `roles/container` — a definition should not restate them.
+A service needing its own Docker network declares `network:`; the four that need extra
+work before their containers start declare `hook: true` and put the tasks in
+`services/<name>/hook.yml`. Directory names use hyphens, never underscores, since the
+flag substitutes underscores and has to map back unambiguously.
 
 ### Container networks
 

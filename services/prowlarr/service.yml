@@ -1,0 +1,7 @@
+---
+containers:
+  - image: ghcr.io/linuxserver/prowlarr:latest
+    networks:
+      - name: media_network
+    volumes:
+      - "{{ docker_dir }}/prowlarr:/config"

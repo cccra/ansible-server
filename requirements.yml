@@ -3,7 +3,7 @@
 # (this installs both the roles and the collections listed below)
 
 collections:
-  # Provides docker_container / docker_network, used by every role under roles/containers/
+  # Provides docker_container / docker_network, used by roles/container to deploy services/
   - name: community.docker
     version: ">=4.0.0,<6.0.0"
   # Provides locale_gen, snap, alternatives

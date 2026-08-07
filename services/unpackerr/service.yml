@@ -1,0 +1,14 @@
+---
+containers:
+  - image: golift/unpackerr:latest
+    networks:
+      - name: media_network
+    env:
+      UN_SONARR_0_URL: "http://sonarr:8989"
+      UN_SONARR_0_API_KEY: "{{ sonarr_api }}"
+      UN_RADARR_0_URL: "http://radarr:7878"
+      UN_RADARR_0_API_KEY: "{{ radarr_api }}"
+      UN_LIDARR_0_URL: "http://lidarr:8686"
+      UN_LIDARR_0_API_KEY: "{{ lidarr_api }}"
+    volumes:
+      - "{{ mergerfs_root }}/Downloads:/downloads"
