@@ -15,6 +15,27 @@
     mode: "0600"
   no_log: true
 
+# The VPN image needs the subnet literally, and media_network's is whatever Docker's
+# default pool assigned, so read it back rather than hardcoding it.
+- name: Look up the media network
+  become: false
+  community.docker.docker_network_info:
+    name: media_network
+  register: _media_network
+
+- name: Fail if the media network does not exist yet
+  ansible.builtin.fail:
+    msg: >-
+      media_network does not exist. Run the container-fleet role first
+      (--tags containers, or a full playbook run) so the networks are created.
+  when: not _media_network.exists
+
+- name: Record the media network subnet
+  ansible.builtin.set_fact:
+    media_network_subnet: >-
+      {{ _media_network.network.IPAM.Config
+         | map(attribute='Subnet') | select('search', '\.') | first }}
+
 - name: Make sure the qbittorrent container is created and running
   community.docker.docker_container:
     name: "qbittorrent"

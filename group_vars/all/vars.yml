@@ -88,8 +88,6 @@ extra_packages:
 # Pinned to what Docker had already assigned, so the network is not recreated.
 app_network_subnet: "172.18.0.0/16"
 
-media_network_subnet: "172.19.0.0/16"
-
 # Every network nginx-proxy-manager has to join to reach what it proxies. Docker's
 # embedded DNS resolves a container name over any network the two share, so NPM's
 # existing upstreams (http://jellyfin:8096 and friends) keep working untouched.
@@ -107,11 +105,15 @@ proxied_networks:
   - gitea_network
   - invoiceninja_network
 
-# Only the two shared zones get a pinned subnet; the per-service networks take
-# whatever Docker's default pool hands out.
+# Only app_network gets a pinned subnet, because it already had one and recreating it
+# would detach every running container. Everything else takes whatever Docker's
+# default pool hands out -- pinning a subnet for a new network just risks colliding
+# with an address space Docker already handed to an auto-assigned network.
+#
+# roles/containers/qbittorrent looks media_network's assigned subnet up at runtime,
+# since the VPN image needs it literally.
 network_subnets:
   app_network: "{{ app_network_subnet }}"
-  media_network: "{{ media_network_subnet }}"
 
 # Watchtower owns routine updates. Override with -e container_pull=always to make a
 # playbook run pull new images as well.
