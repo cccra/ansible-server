@@ -1,0 +1,36 @@
+---
+profile: production
+
+exclude_paths:
+  - .cache/
+  - .github/
+  - group_vars/  # contains vault-encrypted files that cannot be parsed
+
+skip_list:
+  # Roles are deliberately grouped into subdirectories (roles/security/<name>,
+  # roles/filesystems/<name>) and referenced by path from run.yml. That layout is
+  # the project's convention -- see CLAUDE.md.
+  - role-name[path]
+  # Shared configuration (docker_dir, mergerfs_root, username, timezone, ...) lives in
+  # group_vars/all/vars.yml and is consumed by many roles by design, so role-prefixed
+  # variable names would be actively misleading here.
+  - var-naming[no-role-prefix]
+  # These roles are internal to this playbook and are never published to Galaxy.
+  - meta-no-info
+  - meta-runtime
+  # Several role directories use hyphens (hd-idle, container-fleet, snapraid-backup).
+  # They are referenced by path from run.yml and named after the upstream project, so
+  # renaming them to satisfy the Galaxy naming pattern would only make them harder to
+  # find.
+  - role-name
+
+# Third-party roles installed via requirements.yml are not ours to lint.
+mock_roles:
+  - bertvv.samba
+  - geerlingguy.security
+  - geerlingguy.ntp
+  - chriswayg.msmtp-mailer
+  - stuvusit.smartd
+  - oefenweb.dns
+  - notthebee.ubuntu_autoinstall
+  - ironicbadger.snapraid

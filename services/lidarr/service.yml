@@ -1,0 +1,15 @@
+---
+hook: true
+
+containers:
+  - image: lscr.io/linuxserver/lidarr:latest
+    networks:
+      - name: media_network
+    dns_servers:
+      - 1.1.1.1
+      - 8.8.8.8
+    ports:
+      - "{{ lan_address }}:8686:8686"
+    volumes:
+      - "{{ docker_dir }}/lidarr:/config"
+      - "{{ mergerfs_root }}:/tank"

@@ -7,7 +7,7 @@
   gather_facts: false
 
   pre_tasks:
-    # `always` so tagged runs (--tags jellyfin, --tags containers, ...) don't have to
+    # `always` so tagged runs (--tags containers, --tags snapraid, ...) don't have to
     # remember to include the probe -- everything after it depends on the connection
     # details it discovers.
     - name: Determine which SSH port and credentials work
@@ -55,9 +55,9 @@
       tags:
         - docker
 
-    # Fleet reconciliation: shared network, teardown of disabled services, persistent
-    # data. Tagged `containers` so a containers-only run still reconciles the fleet
-    # against the enable_* flags before the service roles run.
+    # Fleet reconciliation: the container networks, teardown of disabled services,
+    # persistent data. Tagged `containers` so a containers-only run still reconciles
+    # the fleet against the enable_container_* flags before the services deploy.
     - role: container-fleet
       tags:
         - container-fleet
@@ -71,10 +71,10 @@
         - nvidia
       when: >-
         enable_nvidia | default(
-          enable_jellyfin | default(false)
-          or enable_immich | default(false)
-          or enable_tdarr | default(false)
-          or enable_openreader | default(false)
+          enable_container_jellyfin | default(false)
+          or enable_container_immich | default(false)
+          or enable_container_tdarr | default(false)
+          or enable_container_openreader | default(false)
         )
 
     - role: chriswayg.msmtp-mailer
@@ -107,27 +107,6 @@
         - crowdsec
       when: enable_crowdsec | default(false)
 
-    - role: network/nginx-proxy-manager
-      become: false
-      tags:
-        - nginx-proxy-manager
-        - containers
-      when: enable_nginxproxymanager | default(false)
-
-    - role: network/cloudflare-ddns
-      become: false
-      tags:
-        - cloudflare-ddns
-        - containers
-      when: enable_cloudflare_ddns | default(false)
-
-    - role: containers/adguard
-      become: false
-      tags:
-        - adguard
-        - containers
-      when: enable_adguard | default(false)
-
     #
     # NAS / storage
     #
@@ -159,234 +138,15 @@
       when: enable_nas_stuff | default(false)
 
     #
-    # Dashboard
+    # Containers
     #
-    - role: containers/homarr
+    # Every service under services/ is deployed by this one role, driven by the
+    # enable_container_* flags. Tags cannot select an item inside a loop, so a single
+    # service is deployed with -e service_filter=<name> rather than --tags <name>.
+    - role: container
       become: false
       tags:
-        - homarr
         - containers
-      when: enable_homarr | default(false)
-
-    #
-    # System
-    #
-    - role: containers/prowlarr
-      become: false
-      tags:
-        - prowlarr
-        - containers
-      when: enable_prowlarr | default(false)
-
-    - role: containers/flaresolverr
-      become: false
-      tags:
-        - flaresolverr
-        - containers
-      when: enable_flaresolverr | default(false)
-
-    - role: containers/unpackerr
-      become: false
-      tags:
-        - unpackerr
-        - containers
-      when: enable_unpackerr | default(false)
-
-    - role: containers/bazarr
-      become: false
-      tags:
-        - bazarr
-        - containers
-      when: enable_bazarr | default(false)
-
-    - role: containers/tdarr
-      become: false
-      tags:
-        - tdarr
-        - containers
-      when: enable_tdarr | default(false)
-
-    - role: containers/watchtower
-      become: false
-      tags:
-        - watchtower
-        - containers
-      when: enable_watchtower | default(false)
-
-    - role: containers/dashdot
-      become: false
-      tags:
-        - dashdot
-        - containers
-      when: enable_dashdot | default(false)
-
-    #
-    # Media
-    #
-    - role: containers/qbittorrent
-      become: false
-      tags:
-        - qbittorrent
-        - containers
-      when: enable_qbittorrent | default(false)
-
-    - role: containers/sonarr
-      become: false
-      tags:
-        - sonarr
-        - containers
-      when: enable_sonarr | default(false)
-
-    - role: containers/radarr
-      become: false
-      tags:
-        - radarr
-        - containers
-      when: enable_radarr | default(false)
-
-    - role: containers/lazylibrarian
-      become: false
-      tags:
-        - lazylibrarian
-        - containers
-      when: enable_lazylibrarian | default(false)
-
-    - role: containers/lidarr
-      become: false
-      tags:
-        - lidarr
-        - containers
-      when: enable_lidarr | default(false)
-
-    - role: containers/jellyfin
-      become: false
-      tags:
-        - jellyfin
-        - containers
-      when: enable_jellyfin | default(false)
-
-    - role: containers/wizarr
-      become: false
-      tags:
-        - wizarr
-        - containers
-      when: enable_wizarr | default(false)
-
-    - role: containers/navidrome
-      become: false
-      tags:
-        - navidrome
-        - containers
-      when: enable_navidrome | default(false)
-
-    - role: containers/audiobookshelf
-      become: false
-      tags:
-        - audiobookshelf
-        - containers
-      when: enable_audiobookshelf | default(false)
-
-    - role: containers/jellyseerr
-      become: false
-      tags:
-        - jellyseerr
-        - containers
-      when: enable_jellyseerr | default(false)
-
-    #
-    # Services
-    #
-
-    - role: containers/immich
-      become: false
-      tags:
-        - immich
-        - containers
-      when: enable_immich | default(false)
-
-    - role: containers/gitea
-      become: false
-      tags:
-        - gitea
-        - containers
-      when: enable_gitea | default(false)
-
-    - role: containers/grocy
-      become: false
-      tags:
-        - grocy
-        - containers
-      when: enable_grocy | default(false)
-
-    - role: containers/tandoor
-      become: false
-      tags:
-        - tandoor
-        - containers
-      when: enable_tandoor | default(false)
-
-    - role: containers/linkding
-      become: false
-      tags:
-        - linkding
-        - containers
-      when: enable_linkding | default(false)
-
-    - role: containers/wallabag
-      become: false
-      tags:
-        - wallabag
-        - containers
-      when: enable_wallabag | default(false)
-
-    - role: containers/openreader
-      become: false
-      tags:
-        - openreader
-        - containers
-      when: enable_openreader | default(false)
-
-    - role: containers/invoiceninja
-      become: false
-      tags:
-        - invoiceninja
-        - containers
-      when: enable_invoiceninja | default(false)
-
-    - role: containers/paperless
-      become: false
-      tags:
-        - paperless
-        - containers
-      when: enable_paperless | default(false)
-
-    - role: containers/nextcloud
-      become: false
-      tags:
-        - nextcloud
-        - containers
-      when: enable_nextcloud | default(false)
-
-    - role: containers/vaultwarden
-      become: false
-      tags:
-        - vaultwarden
-        - containers
-      when: enable_vaultwarden | default(false)
-
-    - role: containers/gramps
-      become: false
-      tags:
-        - gramps
-        - containers
-      when: enable_gramps | default(false)
-
-    - role: containers/wireguard
-      become: false
-      tags:
-        - wireguard
-        - containers
-      when: enable_wireguard | default(false)
 
 # Samba is disabled. To enable it, uncomment the role block below and set
 # enable_samba: true in your group_vars.

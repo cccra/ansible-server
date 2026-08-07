@@ -1,0 +1,16 @@
+---
+network:
+  name: vaultwarden_network
+
+containers:
+  - image: vaultwarden/server:latest
+    networks:
+      - name: vaultwarden_network
+    env:
+      WEBSOCKET_ENABLED: "true"
+      INVITATIONS_ALLOWED: "true"
+      SIGNUPS_ALLOWED: "false"
+      DOMAIN: "https://vaultwarden.{{ host }}"
+      LOG_FILE: /data/vaultwarden.log
+    volumes:
+      - "{{ docker_dir }}/vaultwarden:/data"

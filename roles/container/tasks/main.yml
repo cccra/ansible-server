@@ -1,0 +1,60 @@
+---
+# One implementation for every service under services/. Those directories hold data
+# rather than tasks: service.yml is a list of docker_container parameter dicts, and
+# the four services that need extra work carry a hook.yml alongside it.
+
+- name: Discover the service definitions
+  delegate_to: localhost
+  become: false
+  ansible.builtin.find:
+    paths: "{{ playbook_dir }}/services"
+    file_type: directory
+    recurse: false
+  register: service_dirs
+
+# Enumerated from the enable_container_* flags rather than from the directory
+# listing, so group_vars stays the register of what this playbook knows how to run.
+# The assert below is what keeps the two honest. Service names carry hyphens, which
+# are not legal in an Ansible variable name, so the flag substitutes underscores --
+# which in turn requires that a service name never contains one.
+- name: Build the service list from the enable_container_* flags
+  ansible.builtin.set_fact:
+    container_services: >-
+      {{ query('varnames', '^enable_container_')
+         | map('regex_replace', '^enable_container_', '')
+         | map('replace', '_', '-') | sort }}
+    defined_services: >-
+      {{ service_dirs.files | map(attribute='path') | map('basename') | sort }}
+
+# container-fleet reads a missing flag as false and tears the service down, so a
+# group_vars file left on the old enable_<name> convention would take the whole fleet
+# with it. Fail the run instead.
+- name: Fail on flags left over from the enable_<name> convention
+  vars:
+    legacy: >-
+      {{ query('varnames', '^enable_(' ~ (defined_services | map('replace', '-', '_') | join('|')) ~ ')$') }}
+  ansible.builtin.assert:
+    that: legacy | length == 0
+    fail_msg: "Rename these to enable_container_*: {{ legacy | join(', ') }}"
+    quiet: true
+
+- name: Fail if the flags and the definitions disagree
+  ansible.builtin.assert:
+    that: container_services == defined_services
+    fail_msg: >-
+      flags with no definition:
+      {{ container_services | difference(defined_services) | join(', ') | default('none', true) }};
+      definitions with no flag:
+      {{ defined_services | difference(container_services) | join(', ') | default('none', true) }}
+    quiet: true
+
+- name: Deploy the enabled services
+  ansible.builtin.include_tasks: service.yml
+  loop: "{{ container_services }}"
+  loop_control:
+    loop_var: service
+  when:
+    - lookup('vars', 'enable_container_' ~ service | replace('-', '_'), default=false) | bool
+    # --tags <service> cannot select an item inside a loop, so single-service runs
+    # go through -e service_filter=jellyfin instead.
+    - service_filter is not defined or service in service_filter.split(',')

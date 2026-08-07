@@ -1,0 +1,8 @@
+---
+containers:
+  - image: ghcr.io/linuxserver/sonarr:latest
+    networks:
+      - name: media_network
+    volumes:
+      - "{{ docker_dir }}/sonarr:/config"
+      - "{{ mergerfs_root }}:/tank"

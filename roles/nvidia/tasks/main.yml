@@ -1,7 +1,7 @@
 ---
-# Extracted from roles/containers/jellyfin. Previously only the jellyfin role
-# installed the driver and container toolkit, so enabling immich, tdarr or
-# openreader *without* jellyfin produced containers that could not start.
+# Host-side driver and container toolkit for every GPU-consuming service, not just
+# jellyfin: immich, tdarr and openreader request the NVIDIA runtime too, and without
+# this their containers cannot start.
 
 - name: Make sure the NVIDIA driver is installed
   become: true

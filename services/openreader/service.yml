@@ -1,0 +1,43 @@
+---
+network:
+  name: openreader_network
+
+containers:
+  - name: openreader-kokoro
+    image: ghcr.io/remsky/kokoro-fastapi-gpu:v0.5.0-cu126
+    networks:
+      - name: openreader_network
+    device_requests:
+      - driver: nvidia
+        count: -1
+        capabilities:
+          - gpu
+    # Force a recreate when the host driver changed -- the toolkit only injects the
+    # driver libraries when the container is created, never on a restart.
+    recreate: "{{ nvidia_driver_changed | default(false) }}"
+    env:
+      USE_GPU: "true"
+      DOWNLOAD_MODEL: "true"
+
+  - image: ghcr.io/richardr1126/openreader:latest
+    networks:
+      - name: app_network
+      - name: openreader_network
+    env:
+      BASE_URL: "https://openreader.{{ host }}"
+      AUTH_SECRET: "{{ openreader_auth_secret }}"
+      ADMIN_EMAILS: "{{ email }}"
+      S3_ENDPOINT: "http://127.0.0.1:8333"
+      S3_ACCESS_KEY_ID: "{{ openreader_s3_access_key }}"
+      S3_SECRET_ACCESS_KEY: "{{ openreader_s3_secret_key }}"
+      IMPORT_LIBRARY_DIR: /library
+      RUNTIME_SEED_JSON: >-
+        {"version":1,
+         "runtimeConfig":{"defaultTtsProvider":"kokoro"},
+         "providers":[{"slug":"kokoro","displayName":"Kokoro",
+                       "providerType":"custom-openai",
+                       "baseUrl":"http://openreader-kokoro:8880/v1",
+                       "defaultModel":"kokoro","enabled":true}]}
+    volumes:
+      - "{{ docker_dir }}/openreader:/app/docstore"
+      - "{{ mergerfs_root }}/Media/Books:/library:ro"

@@ -1,0 +1,8 @@
+---
+containers:
+  - image: ghcr.io/linuxserver/lazylibrarian:latest
+    networks:
+      - name: media_network
+    volumes:
+      - "{{ docker_dir }}/lazylibrarian:/config"
+      - "{{ mergerfs_root }}:/tank"

@@ -110,7 +110,7 @@ proxied_networks:
 # default pool hands out -- pinning a subnet for a new network just risks colliding
 # with an address space Docker already handed to an auto-assigned network.
 #
-# roles/containers/qbittorrent looks media_network's assigned subnet up at runtime,
+# services/qbittorrent/hook.yml looks media_network's assigned subnet up at runtime,
 # since the VPN image needs it literally.
 network_subnets:
   app_network: "{{ app_network_subnet }}"
@@ -172,40 +172,40 @@ enable_nas_stuff: false
 
 # Containers
 
-enable_jellyfin: false
-enable_wizarr: false
-enable_navidrome: false
-enable_audiobookshelf: false
-enable_jellyseerr: false
-enable_immich: false
-enable_qbittorrent: false
-enable_sonarr: false
-enable_radarr: false
-enable_lazylibrarian: false
-enable_lidarr: false
-enable_prowlarr: false
-enable_flaresolverr: false
-enable_unpackerr: false
-enable_bazarr: false
-enable_tdarr: false
-enable_gitea: false
-enable_grocy: false
-enable_tandoor: false
-enable_linkding: false
-enable_wallabag: false
-enable_openreader: false
-enable_invoiceninja: false
-enable_paperless: false
-enable_nextcloud: false
-enable_vaultwarden: false
-enable_gramps: false
-enable_wireguard: false
-enable_homarr: false
-enable_dashdot: false
-enable_adguard: false
-enable_watchtower: false
-enable_cloudflare_ddns: false
-enable_nginxproxymanager: false
+enable_container_jellyfin: false
+enable_container_wizarr: false
+enable_container_navidrome: false
+enable_container_audiobookshelf: false
+enable_container_jellyseerr: false
+enable_container_immich: false
+enable_container_qbittorrent: false
+enable_container_sonarr: false
+enable_container_radarr: false
+enable_container_lazylibrarian: false
+enable_container_lidarr: false
+enable_container_prowlarr: false
+enable_container_flaresolverr: false
+enable_container_unpackerr: false
+enable_container_bazarr: false
+enable_container_tdarr: false
+enable_container_gitea: false
+enable_container_grocy: false
+enable_container_tandoor: false
+enable_container_linkding: false
+enable_container_wallabag: false
+enable_container_openreader: false
+enable_container_invoiceninja: false
+enable_container_paperless: false
+enable_container_nextcloud: false
+enable_container_vaultwarden: false
+enable_container_gramps: false
+enable_container_wireguard: false
+enable_container_homarr: false
+enable_container_dashdot: false
+enable_container_adguard: false
+enable_container_watchtower: false
+enable_container_cloudflare_ddns: false
+enable_container_nginx_proxy_manager: false
 
 # Security
 enable_crowdsec: false

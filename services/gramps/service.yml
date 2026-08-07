@@ -1,0 +1,37 @@
+---
+network:
+  name: gramps_network
+
+containers:
+  - name: gramps-redis
+    sidecar: true
+    image: "{{ redis_image }}"
+    networks:
+      - name: gramps_network
+
+  - name: gramps-celery
+    image: ghcr.io/gramps-project/grampsweb:latest
+    networks:
+      - name: gramps_network
+    command: celery -A gramps_webapi.celery worker --loglevel=INFO
+    env: &gramps_env
+      GRAMPSWEB_TREE: Gramps Web
+      GRAMPSWEB_CELERY_CONFIG__broker_url: redis://gramps-redis:6379/0
+      GRAMPSWEB_CELERY_CONFIG__result_backend: redis://gramps-redis:6379/0
+      GRAMPSWEB_RATELIMIT_STORAGE_URI: redis://gramps-redis:6379/1
+    volumes: &gramps_volumes
+      - "{{ docker_dir }}/gramps/users:/app/users"
+      - "{{ docker_dir }}/gramps/indexdir:/app/indexdir"
+      - "{{ docker_dir }}/gramps/thumb-cache:/app/thumbnail_dir"
+      - "{{ docker_dir }}/gramps/cache:/app/cache"
+      - "{{ docker_dir }}/gramps/secret:/app/secret"
+      - "{{ docker_dir }}/gramps/media:/app/media"
+      - "{{ docker_dir }}/gramps/db:/root/.gramps/grampsdb"
+      - "{{ docker_dir }}/gramps/tmp:/tmp"
+
+  - image: ghcr.io/gramps-project/grampsweb:latest
+    networks:
+      - name: gramps_network
+      - name: app_network
+    env: *gramps_env
+    volumes: *gramps_volumes

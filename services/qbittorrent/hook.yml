@@ -1,0 +1,37 @@
+---
+- name: Fail early if the VPN config is missing
+  ansible.builtin.fail:
+    msg: >-
+      qbittorrent_wg_config is not defined. Put the WireGuard config for this host in
+      group_vars/<inventory>/vault.yml as a block scalar (qbittorrent_wg_config: |).
+  when: qbittorrent_wg_config is not defined
+
+- name: Install the VPN config
+  ansible.builtin.copy:
+    content: "{{ qbittorrent_wg_config }}"
+    dest: "{{ docker_dir }}/qbittorrent/config/wireguard/wg0.conf"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0600"
+  no_log: true
+
+# The VPN image needs the subnet literally, and media_network's is whatever Docker's
+# default pool assigned, so read it back rather than hardcoding it.
+- name: Look up the media network
+  become: false
+  community.docker.docker_network_info:
+    name: media_network
+  register: _media_network
+
+- name: Fail if the media network does not exist yet
+  ansible.builtin.fail:
+    msg: >-
+      media_network does not exist. Run the container-fleet role first
+      (--tags containers, or a full playbook run) so the networks are created.
+  when: not _media_network.exists
+
+- name: Record the media network subnet
+  ansible.builtin.set_fact:
+    media_network_subnet: >-
+      {{ _media_network.network.IPAM.Config
+         | map(attribute='Subnet') | select('search', '\.') | first }}

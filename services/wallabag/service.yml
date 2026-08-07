@@ -1,0 +1,13 @@
+---
+network:
+  name: wallabag_network
+
+containers:
+  - image: wallabag/wallabag
+    networks:
+      - name: wallabag_network
+      - name: app_network
+    env:
+      SYMFONY__ENV__DOMAIN_NAME: "https://wallabag.{{ host }}"
+    volumes:
+      - "{{ docker_dir }}/wallabag/images:/var/www/wallabag/web/assets/images"

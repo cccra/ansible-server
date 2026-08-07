@@ -1,0 +1,7 @@
+---
+containers:
+  - image: ghcr.io/flaresolverr/flaresolverr:latest
+    networks:
+      - name: media_network
+    volumes:
+      - "{{ docker_dir }}/flaresolverr:/config"

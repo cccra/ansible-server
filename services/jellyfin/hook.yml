@@ -1,0 +1,12 @@
+---
+# NVIDIA driver / container-toolkit setup lives in roles/nvidia, which runs for any
+# GPU-consuming service rather than only for Jellyfin.
+
+- name: Increase max_user_watches for automatic import
+  become: true
+  ansible.posix.sysctl:
+    name: fs.inotify.max_user_watches
+    value: "3276800"
+    sysctl_set: true
+    state: present
+    reload: true

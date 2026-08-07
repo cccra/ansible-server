@@ -1,12 +1,13 @@
 ---
-# Container-fleet lifecycle: the shared network, teardown of disabled services, and
+# Container-fleet lifecycle: the shared networks, teardown of disabled services, and
 # the persistent data directory. Engine installation lives in roles/docker; this role
 # is what a `--tags containers` run needs to reconcile the fleet against the
-# enable_* flags before the individual service roles run.
+# enable_container_* flags before roles/container deploys anything.
 
-# Created here as well as in the individual service roles: a service role run on its
-# own (--tags nextcloud) has to be able to create its own network, and NPM has to be
-# able to join every network up front whether or not the service behind it is enabled.
+# Created here as well as in the service definitions that declare one: a single-service
+# run (-e service_filter=nextcloud) has to be able to create its own network, and NPM
+# has to be able to join every network up front whether or not the service behind it
+# is enabled.
 - name: Create the container networks
   become: false
   community.docker.docker_network:
@@ -14,28 +15,30 @@
     ipam_config: "{{ [{'subnet': network_subnets[item]}] if item in network_subnets else omit }}"
   loop: "{{ proxied_networks }}"
 
-- name: Get a list of containers
+- name: Get a list of services
   delegate_to: localhost
   become: false
   ansible.builtin.find:
     paths:
-      - "roles/containers"
+      - "services"
     file_type: directory
     recurse: false
-  register: containers
+  register: services
 
-# The enable_* flags are the source of truth for what runs: flipping one off and
-# re-running actually tears the container down.
+# The enable_container_* flags are the source of truth for what runs: flipping one
+# off and re-running actually tears the container down.
 # Covers containers created before the service label existed.
 - name: Stop and remove all the disabled containers
   become: false
+  vars:
+    service: "{{ item.path | basename }}"
   community.docker.docker_container:
-    name: "{{ item.path.split('/')[-1] }}"
+    name: "{{ service }}"
     state: absent
-  when: not lookup('vars', 'enable_' + item.path.split('/')[-1], default=false)
-  loop: "{{ containers.files }}"
+  when: not lookup('vars', 'enable_container_' ~ service | replace('-', '_'), default=false)
+  loop: "{{ services.files }}"
   loop_control:
-    label: "{{ item.path.split('/')[-1] }}"
+    label: "{{ item.path | basename }}"
 
 # verbose_output is required: without it the module strips each container to a fixed
 # field list that omits Labels.
@@ -58,7 +61,7 @@
     state: absent
   when:
     - service | length > 0
-    - not lookup('vars', 'enable_' + service, default=false)
+    - not lookup('vars', 'enable_container_' ~ service | replace('-', '_'), default=false)
   loop: "{{ managed_containers.containers | default([]) }}"
   loop_control:
     label: "{{ item.Names[0] | regex_replace('^/', '') }}"
