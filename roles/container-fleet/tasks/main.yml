@@ -1,33 +1,72 @@
 ---
-# Container-fleet lifecycle: the shared networks, teardown of disabled services, and
-# the persistent data directory. Engine installation lives in roles/docker; this role
-# is what a `--tags containers` run needs to reconcile the fleet against the
-# enable_container_* flags before roles/container deploys anything.
-
-# Created here as well as in the service definitions that declare one: a single-service
-# run (-e service_filter=nextcloud) has to be able to create its own network, and NPM
-# has to be able to join every network up front whether or not the service behind it
-# is enabled.
-- name: Create the container networks
-  become: false
-  community.docker.docker_network:
-    name: "{{ item }}"
-    ipam_config: "{{ [{'subnet': network_subnets[item]}] if item in network_subnets else omit }}"
-  loop: "{{ proxied_networks }}"
+# Reconciles the fleet against the enable_container_* flags before roles/container
+# deploys anything: the networks, teardown of disabled services, persistent data.
 
 - name: Get a list of services
   delegate_to: localhost
   become: false
   ansible.builtin.find:
     paths:
-      - "services"
+      - "{{ playbook_dir }}/services"
     file_type: directory
     recurse: false
   register: services
 
+# Read rather than included, so the definitions arrive as inert text: their Jinja must
+# not be resolved here, and some of it refers to facts a hook has not set yet.
+# nginx-proxy-manager is left out because its definition reads the list this builds.
+- name: Read every service definition
+  delegate_to: localhost
+  become: false
+  vars:
+    _paths: >-
+      {{ services.files | map(attribute='path') | reject('search', '/nginx-proxy-manager$')
+         | map('regex_replace', '$', '/service.yml') | sort }}
+  ansible.builtin.set_fact:
+    service_definitions: "{{ query('file', *_paths) | map('from_yaml') | list }}"
+
+# A service declares the network it owns; the shared zones are the ones nobody claims.
+# Read in sorted order, so a container on two of them always resolves to the same one.
+- name: Work out the shared zones and the containers the proxy fronts
+  become: false
+  vars:
+    _owned: >-
+      {{ service_definitions | selectattr('network', 'defined') | map(attribute='network.name') | list }}
+    _referenced: >-
+      {{ service_definitions | map(attribute='containers', default=[]) | flatten
+         | map(attribute='networks', default=[]) | flatten | map(attribute='name') | list }}
+  ansible.builtin.set_fact:
+    shared_networks: "{{ _referenced | unique | reject('in', _owned) | list }}"
+    proxied_containers: >-
+      {{ service_definitions | map(attribute='containers', default=[]) | flatten
+         | selectattr('proxied', 'defined') | selectattr('networks', 'defined') | list }}
+
+# The proxy resolves an upstream by container name over any network the two share, so
+# one network per container is enough: the shared zone it sits on, or its own if it
+# sits on none.
+- name: Take each proxied container's main network
+  become: false
+  vars:
+    _zones: "{{ item.networks | map(attribute='name') | list }}"
+  ansible.builtin.set_fact:
+    proxied_networks: >-
+      {{ ((proxied_networks | default([]))
+          + [(shared_networks | select('in', _zones) | list or _zones) | first]) | unique }}
+  loop: "{{ proxied_containers }}"
+  loop_control:
+    label: "{{ _zones | join(',') }}"
+
+# The private ones are created here as well as by the service that declares them, so
+# NPM can join every network up front whether or not the service behind it is enabled.
+- name: Create the container networks
+  become: false
+  community.docker.docker_network:
+    name: "{{ item }}"
+    ipam_config: "{{ [{'subnet': network_subnets[item]}] if item in network_subnets else omit }}"
+  loop: "{{ shared_networks | union(proxied_networks) }}"
+
 # The enable_container_* flags are the source of truth for what runs: flipping one
 # off and re-running actually tears the container down.
-# Covers containers created before the service label existed.
 - name: Stop and remove all the disabled containers
   become: false
   vars:
@@ -52,7 +91,7 @@
     verbose_output: true
   register: managed_containers
 
-- name: Stop and remove the sidecars of disabled services
+- name: Stop and remove every remaining container of a disabled service
   become: false
   vars:
     service: "{{ (item.Labels | default({}))['nas-setup.service'] | default('') }}"

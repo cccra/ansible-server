@@ -1,6 +1,7 @@
 ---
 containers:
-  - image: ghcr.io/linuxserver/sonarr:latest
+  - proxied: true
+    image: ghcr.io/linuxserver/sonarr:latest
     networks:
       - name: media_network
     volumes:

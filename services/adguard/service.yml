@@ -6,7 +6,8 @@ network:
       gateway: "{{ '.'.join(adguard_address.split('.')[0:3]) }}.1"
 
 containers:
-  - image: adguard/adguardhome:latest
+  - proxied: true
+    image: adguard/adguardhome:latest
     networks:
       - name: adguard_network
         ipv4_address: "{{ adguard_address }}"

@@ -4,7 +4,6 @@ network:
 
 containers:
   - name: gramps-redis
-    sidecar: true
     image: "{{ redis_image }}"
     networks:
       - name: gramps_network
@@ -29,7 +28,8 @@ containers:
       - "{{ docker_dir }}/gramps/db:/root/.gramps/grampsdb"
       - "{{ docker_dir }}/gramps/tmp:/tmp"
 
-  - image: ghcr.io/gramps-project/grampsweb:latest
+  - proxied: true
+    image: ghcr.io/gramps-project/grampsweb:latest
     networks:
       - name: gramps_network
       - name: app_network

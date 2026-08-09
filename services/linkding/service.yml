@@ -1,6 +1,7 @@
 ---
 containers:
-  - image: sissbruecker/linkding:latest
+  - proxied: true
+    image: sissbruecker/linkding:latest
     networks:
       - name: app_network
     env:

@@ -4,7 +4,6 @@ network:
 
 containers:
   - name: paperless-mariadb
-    sidecar: true
     image: "{{ mariadb_image }}"
     networks:
       - name: paperless_network
@@ -17,12 +16,12 @@ containers:
       - "{{ docker_dir }}/paperless/mariadb/mysql:/var/lib/mysql"
 
   - name: paperless-redis
-    sidecar: true
     image: "{{ redis_image }}"
     networks:
       - name: paperless_network
 
-  - image: paperlessngx/paperless-ngx:latest
+  - proxied: true
+    image: paperlessngx/paperless-ngx:latest
     networks:
       - name: paperless_network
     env:

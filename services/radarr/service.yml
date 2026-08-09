@@ -1,6 +1,7 @@
 ---
 containers:
-  - image: ghcr.io/linuxserver/radarr:latest
+  - proxied: true
+    image: ghcr.io/linuxserver/radarr:latest
     networks:
       - name: media_network
     volumes:

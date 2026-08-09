@@ -3,7 +3,8 @@ network:
   name: wallabag_network
 
 containers:
-  - image: wallabag/wallabag
+  - proxied: true
+    image: wallabag/wallabag
     networks:
       - name: wallabag_network
       - name: app_network

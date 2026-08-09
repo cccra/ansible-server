@@ -4,7 +4,6 @@ network:
 
 containers:
   - name: gitea-mysql
-    sidecar: true
     image: "{{ mysql_image }}"
     networks:
       - name: gitea_network
@@ -16,7 +15,8 @@ containers:
     volumes:
       - "{{ docker_dir }}/gitea/mysql:/var/lib/mysql:rw"
 
-  - image: gitea/gitea:latest
+  - proxied: true
+    image: gitea/gitea:latest
     networks:
       - name: gitea_network
     ports:

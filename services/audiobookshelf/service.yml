@@ -1,6 +1,7 @@
 ---
 containers:
-  - image: ghcr.io/advplyr/audiobookshelf:latest
+  - proxied: true
+    image: ghcr.io/advplyr/audiobookshelf:latest
     networks:
       - name: app_network
     volumes:

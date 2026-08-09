@@ -1,9 +1,8 @@
 ---
 containers:
   - image: jc21/nginx-proxy-manager:latest
-    # The proxy is the one container that legitimately reaches every zone, so it
-    # joins all of them. Upstreams stay as container names -- Docker's embedded DNS
-    # resolves those over whichever network the two containers share.
+    # The one container that reaches every zone. Upstreams stay as container names --
+    # Docker's embedded DNS resolves those over whichever network the two share.
     networks: "{{ proxied_networks | map('community.general.dict_kv', 'name') | list }}"
     ports:
       - "80:80"

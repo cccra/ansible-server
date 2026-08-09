@@ -14,6 +14,7 @@ containers:
       - "{{ docker_dir }}/wireguard/config:/config"
 
   - name: wireguard-ui
+    proxied: true
     image: ngoduykhanh/wireguard-ui:latest
     networks:
       - name: wireguard_network

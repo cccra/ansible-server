@@ -2,7 +2,8 @@
 hook: true
 
 containers:
-  - image: lscr.io/linuxserver/lidarr:latest
+  - proxied: true
+    image: lscr.io/linuxserver/lidarr:latest
     networks:
       - name: media_network
     dns_servers:

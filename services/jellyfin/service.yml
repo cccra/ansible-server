@@ -2,7 +2,8 @@
 hook: true
 
 containers:
-  - image: ghcr.io/linuxserver/jellyfin:latest
+  - proxied: true
+    image: ghcr.io/linuxserver/jellyfin:latest
     networks:
       - name: media_network
     device_requests:
@@ -10,16 +11,13 @@ containers:
         count: -1
         capabilities:
           - gpu
-    # Force a recreate when the host driver changed -- the toolkit only injects the
-    # driver libraries when the container is created, never on a restart.
+    # The toolkit injects the driver libraries at create time only, never on restart.
     recreate: "{{ nvidia_driver_changed | default(false) }}"
     env:
       VERSION: latest
-      # REQUIRED for NVENC/NVDEC. `device_requests` with capabilities [gpu] is the
-      # API equivalent of `--gpus all`, which per NVIDIA defaults to
-      # "utility,compute" -- that does NOT include `video`, so libnvidia-encode and
-      # libnvcuvid are never mounted and hardware transcoding fails even though
-      # nvidia-smi works fine inside the container.
+      # REQUIRED for NVENC/NVDEC: capabilities [gpu] alone resolves to
+      # "utility,compute", which does not mount libnvidia-encode or libnvcuvid.
+      # Hardware transcoding then fails even though nvidia-smi works in the container.
       NVIDIA_DRIVER_CAPABILITIES: all
     volumes:
       - "{{ docker_dir }}/jellyfin:/config"

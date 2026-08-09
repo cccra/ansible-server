@@ -4,7 +4,6 @@ network:
 
 containers:
   - name: invoiceninja-mysql
-    sidecar: true
     image: "{{ mysql_image }}"
     networks:
       - name: invoiceninja_network
@@ -16,7 +15,8 @@ containers:
     volumes:
       - "{{ docker_dir }}/invoiceninja/mysql:/var/lib/mysql:rw"
 
-  - image: invoiceninja/invoiceninja:latest
+  - proxied: true
+    image: invoiceninja/invoiceninja:latest
     networks:
       - name: invoiceninja_network
     env:

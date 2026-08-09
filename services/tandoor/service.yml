@@ -4,7 +4,6 @@ network:
 
 containers:
   - name: tandoor-postgres
-    sidecar: true
     image: tensorchord/pgvecto-rs:pg14-v0.2.0
     networks:
       - name: tandoor_network
@@ -15,7 +14,8 @@ containers:
     volumes:
       - "{{ docker_dir }}/tandoor/db:/var/lib/postgresql/data"
 
-  - image: vabene1111/recipes:latest
+  - proxied: true
+    image: vabene1111/recipes:latest
     networks:
       - name: app_network
       - name: tandoor_network

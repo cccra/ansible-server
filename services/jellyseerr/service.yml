@@ -1,6 +1,7 @@
 ---
 containers:
-  - image: ghcr.io/seerr-team/seerr:latest
+  - proxied: true
+    image: ghcr.io/seerr-team/seerr:latest
     networks:
       - name: media_network
     dns_servers:

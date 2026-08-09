@@ -1,5 +1,6 @@
 ---
 containers:
-  - image: mauricenino/dashdot
+  - proxied: true
+    image: mauricenino/dashdot
     networks:
       - name: app_network

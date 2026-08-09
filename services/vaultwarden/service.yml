@@ -3,7 +3,8 @@ network:
   name: vaultwarden_network
 
 containers:
-  - image: vaultwarden/server:latest
+  - proxied: true
+    image: vaultwarden/server:latest
     networks:
       - name: vaultwarden_network
     env:

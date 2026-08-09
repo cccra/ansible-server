@@ -1,6 +1,7 @@
 ---
 containers:
-  - image: ghcr.io/linuxserver/lazylibrarian:latest
+  - proxied: true
+    image: ghcr.io/linuxserver/lazylibrarian:latest
     networks:
       - name: media_network
     volumes:

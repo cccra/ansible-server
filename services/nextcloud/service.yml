@@ -6,7 +6,6 @@ network:
 
 containers:
   - name: nextcloud-mariadb
-    sidecar: true
     image: "{{ mariadb_image }}"
     networks:
       - name: nextcloud_network
@@ -21,7 +20,8 @@ containers:
     volumes:
       - "{{ docker_dir }}/nextcloud/mariadb/mysql:/var/lib/mysql"
 
-  - image: ghcr.io/linuxserver/nextcloud:latest
+  - proxied: true
+    image: ghcr.io/linuxserver/nextcloud:latest
     networks:
       - name: nextcloud_network
     dns_servers:

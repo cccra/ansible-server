@@ -3,6 +3,10 @@ containers:
   - image: nickfedor/watchtower:latest
     env:
       WATCHTOWER_SCHEDULE: "{{ watchtower_schedule }}"
+      WATCHTOWER_TIMEOUT: "{{ watchtower_stop_timeout }}"
+      # Stop and start each container in turn, so a slow shutdown holds only that
+      # container down rather than the whole batch.
+      WATCHTOWER_ROLLING_RESTART: "true"
       WATCHTOWER_CLEANUP: "true"
       WATCHTOWER_INCLUDE_STOPPED: "false"
       WATCHTOWER_NOTIFICATIONS: shoutrrr

@@ -1,6 +1,7 @@
 ---
 containers:
-  - image: ghcr.io/haveagitgat/tdarr:latest
+  - proxied: true
+    image: ghcr.io/haveagitgat/tdarr:latest
     networks:
       - name: app_network
     device_requests:
@@ -8,8 +9,7 @@ containers:
         count: -1
         capabilities:
           - gpu
-    # Force a recreate when the host driver changed -- the toolkit only injects the
-    # driver libraries when the container is created, never on a restart.
+    # The toolkit injects the driver libraries at create time only, never on restart.
     recreate: "{{ nvidia_driver_changed | default(false) }}"
     log_driver: json-file
     log_opt:

@@ -1,12 +1,12 @@
 ---
-# Isolated because this Homarr has no live integrations configured -- it only serves
-# links. Enabling the sonarr/radarr/qbittorrent widgets would mean joining
-# media_network as well.
+# Isolated because this Homarr only serves links. Enabling the live
+# sonarr/radarr/qbittorrent widgets would mean joining media_network as well.
 network:
   name: homarr_network
 
 containers:
-  - image: ghcr.io/homarr-labs/homarr:latest
+  - proxied: true
+    image: ghcr.io/homarr-labs/homarr:latest
     networks:
       - name: homarr_network
     env:
