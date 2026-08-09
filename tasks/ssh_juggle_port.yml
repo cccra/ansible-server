@@ -36,8 +36,8 @@
     - name: SSH port juggle | Set the default Pi credentials
       ansible.builtin.set_fact:
         ansible_ssh_port: "22"
-        ansible_ssh_user: pi
-        ansible_ssh_password: raspberry
+        ansible_user: pi
+        ansible_password: raspberry
 
     - name: SSH port juggle | Try the default Pi credentials
       ansible.builtin.wait_for_connection:
@@ -54,8 +54,8 @@
     - name: SSH port juggle | Set the root credentials
       ansible.builtin.set_fact:
         ansible_ssh_port: "22"
-        ansible_ssh_user: root
-        ansible_ssh_password: null
+        ansible_user: root
+        ansible_password: null
 
     - name: SSH port juggle | Try root
       ansible.builtin.wait_for_connection:
