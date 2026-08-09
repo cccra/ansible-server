@@ -53,15 +53,18 @@
         - /etc/apt/sources.list.d/docker.list
         - /etc/apt/trusted.gpg.d/docker.gpg
 
-    - name: Switch to iptables-legacy
+    # Both backends stay loaded in the kernel and are evaluated independently, so
+    # everything writing rules -- Docker, nas-firewall.sh, fail2ban -- has to agree
+    # on one. nft is it.
+    - name: Switch to iptables-nft
       community.general.alternatives:
         name: iptables
-        path: /usr/sbin/iptables-legacy
+        path: /usr/sbin/iptables-nft
 
-    - name: Switch to ip6tables-legacy
+    - name: Switch to ip6tables-nft
       community.general.alternatives:
         name: ip6tables
-        path: /usr/sbin/ip6tables-legacy
+        path: /usr/sbin/ip6tables-nft
 
     - name: Switch to pip3
       community.general.alternatives:
