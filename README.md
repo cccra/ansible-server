@@ -206,7 +206,6 @@ Only these publish a port directly:
 | nginx-proxy-manager admin | 81 | `lan_address` |
 | AdGuard Home | 53 tcp/udp, 3030 | `lan_address` |
 | qBittorrent (Privoxy) | 8118 | `lan_address` |
-| Lidarr | 8686 | `lan_address` |
 
 **Binding to all interfaces does not make a port reachable from the internet.** With
 `enable_iptables: true`, the `DOCKER-USER` chain accepts traffic from `lan_network` and
