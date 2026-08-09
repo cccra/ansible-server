@@ -1,0 +1,26 @@
+---
+extends: default
+
+ignore: |
+  group_vars/
+  .venv/
+
+rules:
+  # Image names, bind-mount paths and env values run well past 80 columns.
+  line-length:
+    max: 160
+    level: warning
+  # true/false over yes/no. Quoted "yes" passed as a container env value is a string,
+  # not a boolean, and is unaffected.
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  # ansible-lint requires this to be disabled for its own yaml rule / fix mode.
+  comments-indentation: false
+  braces:
+    max-spaces-inside: 1
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
