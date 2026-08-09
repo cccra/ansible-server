@@ -14,9 +14,8 @@
   loop: "{{ query('fileglob', 'files/filter.d/*.conf') }}"
   loop_control:
     label: "{{ item | basename }}"
-  # `lookup('vars', X) | default(False)` cannot work: the lookup raises on an
-  # undefined variable before `default` ever sees a value. Pass the fallback to the
-  # lookup itself instead.
+  # The fallback goes to the lookup itself: `lookup(...) | default(False)` cannot
+  # work, since the lookup raises on an undefined variable before default sees it.
   when: lookup('vars', 'enable_' + (item | basename).split('.')[0].split('-')[0], default=false)
   register: copied_rules
   notify:

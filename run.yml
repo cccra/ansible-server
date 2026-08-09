@@ -7,9 +7,8 @@
   gather_facts: false
 
   pre_tasks:
-    # `always` so tagged runs (--tags containers, --tags snapraid, ...) don't have to
-    # remember to include the probe -- everything after it depends on the connection
-    # details it discovers.
+    # `always` because everything after this depends on the connection details it
+    # discovers, tagged run or not.
     - name: Determine which SSH port and credentials work
       ansible.builtin.import_tasks: tasks/ssh_juggle_port.yml
       tags:
@@ -55,16 +54,13 @@
       tags:
         - docker
 
-    # Fleet reconciliation: the container networks, teardown of disabled services,
-    # persistent data. Tagged `containers` so a containers-only run still reconciles
-    # the fleet against the enable_container_* flags before the services deploy.
+    # Tagged `containers` as well, so a containers-only run still reconciles the fleet
+    # before the services deploy.
     - role: container-fleet
       tags:
         - container-fleet
         - containers
 
-    # Host-side GPU setup (driver + container toolkit). Required by every service
-    # that requests the NVIDIA runtime via `device_requests`, not just Jellyfin.
     - role: nvidia
       become: true
       tags:
@@ -122,8 +118,8 @@
         - smartd
       when: enable_nas_stuff | default(false)
 
-    # Deploys /usr/local/bin/snapraid-backup.sh, which the snapraid role's cron entry
-    # invokes. Has to come first so the script exists before the cron references it.
+    # Must come before ironicbadger.snapraid, whose cron entry invokes the script it
+    # deploys to /usr/local/bin/snapraid-backup.sh.
     - role: filesystems/snapraid-backup
       become: true
       tags:
@@ -141,8 +137,7 @@
     # Containers
     #
     # Every service under services/ is deployed by this one role, driven by the
-    # enable_container_* flags. Tags cannot select an item inside a loop, so a single
-    # service is deployed with -e service_filter=<name> rather than --tags <name>.
+    # enable_container_* flags. A single service goes through -e service_filter=<name>.
     - role: container
       become: false
       tags:

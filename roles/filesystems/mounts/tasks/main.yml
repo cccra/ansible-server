@@ -1,11 +1,7 @@
 ---
-# Note on `| default([], true)`: these disk lists may be overridden to null/empty in
-# a host's group_vars. `with_items` used to coerce None to an empty list, but `loop`
-# requires a real list and errors on None. The `true` second argument makes `default`
-# also fire for falsy values (None, ""), not just undefined ones.
-#
-# The `when` cannot guard this on its own -- `loop` is expanded before `when` is
-# evaluated, and `when` then filters per item.
+# `| default([], true)` throughout: a host's group_vars may null these disk lists out,
+# and `loop` errors on None. The second argument makes default fire for falsy values
+# too, not just undefined ones. A `when` cannot cover it -- the loop is expanded first.
 
 - name: Mount the data drives
   ansible.posix.mount:
@@ -41,15 +37,6 @@
   loop_control:
     label: "{{ item.path }}"
 
-# - name: Mount the mergerfs cached array
-#   ansible.posix.mount:
-#     path: "{{ mergerfs_root }}"
-#     src: /mnt/storage_cache:/mnt/storage_slow
-#     opts: category.create=lfs,defaults,allow_other,moveonenospc=1,minfreespace=50G,fsname=mergerfs,uid=1000,gid=1000
-#     fstype: fuse.mergerfs
-#     state: mounted
-#   when: disks | default([], true) | length > 0
-
 - name: Mount the mergerfs array
   ansible.posix.mount:
     path: "{{ mergerfs_root }}"
@@ -67,12 +54,3 @@
     fstype: fuse.mergerfs
     state: mounted
   when: cache_disks | default([], true) | length > 0
-
-# - name: Set owner and permissions of storage
-#   ansible.builtin.file:
-#     dest: "{{ mergerfs_root }}"
-#     state: directory
-#     owner: "{{ username }}"
-#     group: "users"
-#     mode: "ug=rwx,o=rx,g+s"
-#     recurse: true

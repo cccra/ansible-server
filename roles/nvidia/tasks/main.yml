@@ -1,7 +1,6 @@
 ---
-# Host-side driver and container toolkit for every GPU-consuming service, not just
-# jellyfin: immich, tdarr and openreader request the NVIDIA runtime too, and without
-# this their containers cannot start.
+# Host-side driver and container toolkit for every service that requests the NVIDIA
+# runtime: jellyfin, immich, tdarr, openreader.
 
 - name: Make sure the NVIDIA driver is installed
   become: true
@@ -10,10 +9,9 @@
     state: present
   register: nvidia_driver
 
-# Published for the GPU container roles. The toolkit injects the host's driver
-# libraries into a container at CREATE time, so a container that is merely restarted
-# after a driver upgrade keeps the OLD libraries bind-mounted and breaks. The GPU
-# roles consume this to force a recreate.
+# The toolkit injects the host's driver libraries at container CREATE time, so a
+# container that is merely restarted after a driver upgrade keeps the old libraries
+# bind-mounted and breaks. The GPU services read this fact to force a recreate.
 - name: Record whether the NVIDIA driver changed
   ansible.builtin.set_fact:
     nvidia_driver_changed: "{{ nvidia_driver is changed }}"

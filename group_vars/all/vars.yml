@@ -192,12 +192,11 @@ docker_wan_ports: []
 # cloudflare_firewall_token (vault).
 enable_cloudflare: false
 
-# Samba is commented out of run.yml; this flag also adds the user to sambashare.
+# Also adds the login user to sambashare. The role itself is commented out of run.yml.
 enable_samba: false
 
-# Host-side NVIDIA driver + container toolkit. Left unset, roles/nvidia runs
-# automatically whenever a GPU-consuming service (jellyfin, immich, tdarr,
-# openreader) is enabled. Set explicitly to force it on or off.
+# Left unset, roles/nvidia runs automatically whenever a GPU-consuming service
+# (jellyfin, immich, tdarr, openreader) is enabled. Set to force it on or off.
 # enable_nvidia: false
 
 # Powersaving (powertop, cpufreq)
@@ -250,8 +249,7 @@ samba_shares:
       valid_users: "{{ username }}"
       write_list: "{{ username }}"
 
-# Snapraid and MergerFS
-# (the MergerFS/SnapRAID stack is gated by enable_nas_stuff, above)
+# Snapraid and MergerFS (gated by enable_nas_stuff, above)
 mergerfs_root: /mnt/storage
 
 cache_root: /mnt/storage_cache
@@ -347,11 +345,9 @@ smartd_default_mail_recipients: ["{{ email }}"]
 #   cloudflare_dns_token          # cloudflare-ddns
 #   cloudflare_firewall_token     # fail2ban, only if enable_cloudflare
 #
-# These env vars are read only when a container initialises an EMPTY data
+# The database env vars are read only when a container initialises an EMPTY data
 # directory. Changing one does not re-key an existing database; it just stops the
 # application logging in. Rotating for real means an ALTER USER against the running
 # database.
 #
-# The gitea_* and invoiceninja_* values were rotated: the originals are recoverable
-# from this repository's public history and must never be reused. A stale data
-# directory still holds the old password.
+# Any credential reachable from this repository's public history must never be reused.

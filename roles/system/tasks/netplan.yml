@@ -16,8 +16,6 @@
     mode: "0600"
   notify: Netplan apply
 
-# Without `state: absent` this defaulted to `state: file`, which only asserts
-# attributes -- the stale configs were never actually removed.
 - name: Delete the irrelevant configs
   ansible.builtin.file:
     path: "{{ item.path }}"

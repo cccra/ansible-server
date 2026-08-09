@@ -6,8 +6,8 @@ docker_deps:
   - 'gnupg'
   - 'python3-pip'
 
-# Plain Debian installs Docker from the distro repos (the docker-ce apt repo is
-# only wired up for Ubuntu above).
+# Plain Debian installs Docker from the distro repos; the docker-ce apt repo is
+# only wired up for Ubuntu.
 docker_packages:
   - 'docker.io'
   - 'containerd'

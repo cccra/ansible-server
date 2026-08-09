@@ -43,8 +43,7 @@
         state: present
       register: docker_repo
 
-    # The repo used to be defined as a one-line docker.list with its key in
-    # trusted.gpg.d. Leaving those in place would define the repository twice.
+    # Left in place these would define the repository a second time.
     - name: Remove the superseded Docker apt source and key
       ansible.builtin.file:
         path: "{{ item }}"
@@ -146,6 +145,3 @@
 # container roles run later in this play.
 - name: Flush handlers so the daemon picks up the new configuration
   ansible.builtin.meta: flush_handlers
-
-# The shared app_network, teardown of disabled services, and the persistent data
-# directory live in roles/container-fleet -- this role only installs the engine.

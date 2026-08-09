@@ -27,11 +27,3 @@
   loop:
     - powertop.timer
     - cpupower-min.timer
-
-# - name: Shut down every day (apart from Sunday) at 1:30 AM
-#   ansible.builtin.cron:
-#     name: "Power off at night to save energy"
-#     minute: "30"
-#     hour: "1"
-#     weekday: "1-6"
-#     job: "poweroff"

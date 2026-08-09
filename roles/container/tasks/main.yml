@@ -1,7 +1,6 @@
 ---
 # One implementation for every service under services/. Those directories hold data
-# rather than tasks: service.yml is a list of docker_container parameter dicts, and
-# the four services that need extra work carry a hook.yml alongside it.
+# rather than tasks: service.yml is a list of docker_container parameter dicts.
 
 - name: Discover the service definitions
   delegate_to: localhost
@@ -12,11 +11,10 @@
     recurse: false
   register: service_dirs
 
-# Enumerated from the enable_container_* flags rather than from the directory
-# listing, so group_vars stays the register of what this playbook knows how to run.
-# The assert below is what keeps the two honest. Service names carry hyphens, which
-# are not legal in an Ansible variable name, so the flag substitutes underscores --
-# which in turn requires that a service name never contains one.
+# Enumerated from the flags rather than the directory listing, so group_vars stays the
+# register of what this playbook knows how to run; the asserts below keep the two
+# honest. Hyphens are not legal in a variable name, so the flag substitutes
+# underscores -- which requires that a service name never contains one.
 - name: Build the service list from the enable_container_* flags
   ansible.builtin.set_fact:
     container_services: >-
@@ -27,8 +25,7 @@
       {{ service_dirs.files | map(attribute='path') | map('basename') | sort }}
 
 # container-fleet reads a missing flag as false and tears the service down, so a
-# group_vars file left on the old enable_<name> convention would take the whole fleet
-# with it. Fail the run instead.
+# group_vars file on the bare enable_<name> spelling would take the fleet with it.
 - name: Fail on flags left over from the enable_<name> convention
   vars:
     legacy: >-
@@ -55,6 +52,5 @@
     loop_var: service
   when:
     - lookup('vars', 'enable_container_' ~ service | replace('-', '_'), default=false) | bool
-    # --tags <service> cannot select an item inside a loop, so single-service runs
-    # go through -e service_filter=jellyfin instead.
+    # A tag cannot select an item inside a loop, hence -e service_filter=jellyfin.
     - service_filter is not defined or service in service_filter.split(',')

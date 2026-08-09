@@ -4,7 +4,6 @@
     name: python3-pynvim
     state: present
 
-# get_url sets the mode itself, so the separate chmod task is no longer needed.
 - name: Grab the latest Neovim release
   become: true
   ansible.builtin.get_url:
@@ -23,12 +22,3 @@
     version: HEAD
     recursive: false
     force: true
-
-# - name: Clone personal NvChad configs
-#   become: true
-#   become_user: '{{ username }}'
-#   ansible.builtin.git:
-#     repo: 'https://git.gillick.xyz/Gus/nvchad-config.git'
-#     dest: '/home/{{ username }}/.config/nvim/lua/custom'
-#     recursive: false
-#     force: true

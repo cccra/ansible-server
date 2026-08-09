@@ -1,13 +1,8 @@
 ---
 # Probe how this host is reachable, so the same playbook works against both a freshly
 # imaged box (port 22, default credentials) and an already-hardened one
-# (security_ssh_port, key-based auth).
-#
-# Each step only runs if every previous one failed, and each registers its OWN result
-# variable. The previous version reused `_ssh_port_default_cred_result` for two
-# different probes and then gated the final failure on `_ssh_port_root_result`, which
-# was never registered -- so the playbook could never report an unreachable host and
-# instead failed later with a confusing error.
+# (security_ssh_port, key-based auth). Each step only runs if every previous one
+# failed, and registers its own result variable so the final failure can name them all.
 
 - name: SSH port juggle | Try the configured port
   ansible.builtin.wait_for_connection:

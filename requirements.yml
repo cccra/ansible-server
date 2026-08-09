@@ -1,14 +1,14 @@
 ---
-# Install with: ansible-galaxy install -r requirements.yml
-# (this installs both the roles and the collections listed below)
+# ansible-galaxy install -r requirements.yml -- installs both the roles and the
+# collections below.
 
 collections:
-  # Provides docker_container / docker_network, used by roles/container to deploy services/
+  # docker_container, docker_network
   - name: community.docker
     version: ">=4.0.0,<6.0.0"
-  # Provides locale_gen, snap, alternatives
+  # locale_gen, snap, alternatives
   - name: community.general
-  # Provides mount, synchronize, sysctl -- these no longer ship in ansible.builtin
+  # mount, synchronize, sysctl
   - name: ansible.posix
 
 roles:

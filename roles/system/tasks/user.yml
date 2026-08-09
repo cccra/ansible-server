@@ -85,8 +85,8 @@
     state: present
     append: true
     shell: /sbin/nologin
-  # `when: additional_users is defined` cannot guard this: the loop is expanded
-  # before the conditional is evaluated. Default to an empty list instead.
+  # `when` cannot guard this -- the loop is expanded before the conditional is
+  # evaluated -- so an undefined list has to default to an empty one.
   loop: "{{ additional_users | default([], true) }}"
   loop_control:
     label: "{{ item.name }}"

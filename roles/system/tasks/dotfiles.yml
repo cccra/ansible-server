@@ -1,6 +1,4 @@
 ---
-# Note: `src dir` is created before the clone -- previously it was created after the
-# task that clones into it.
 - name: Create src dir
   ansible.builtin.file:
     path: "/home/{{ username }}/.local/src"
