@@ -6,6 +6,31 @@
       group_vars/<inventory>/vault.yml as a block scalar (qbittorrent_wg_config: |).
   when: qbittorrent_wg_config is not defined
 
+# An unprivileged container cannot autoload kernel modules, so `ip link add wg0 type
+# wireguard` only works if the host has already loaded it.
+- name: Load the wireguard kernel module, now and at every boot
+  become: true
+  community.general.modprobe:
+    name: wireguard
+    state: present
+    persistent: present
+
+- name: Create the qbittorrent bin directory
+  ansible.builtin.file:
+    path: "{{ docker_dir }}/qbittorrent/bin"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0755"
+
+- name: Install the sysctl shim that lets wg-quick run unprivileged
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/services/qbittorrent/sysctl-shim.sh"
+    dest: "{{ docker_dir }}/qbittorrent/bin/sysctl"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0755"
+
 - name: Install the VPN config
   ansible.builtin.copy:
     content: "{{ qbittorrent_wg_config }}"

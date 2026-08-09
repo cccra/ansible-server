@@ -2,12 +2,10 @@
 hook: true
 
 containers:
-  - image: binhex/arch-qbittorrentvpn:5.1.1-1-01
+  - proxied: true
+    image: binhex/arch-qbittorrentvpn:latest
     networks:
       - name: media_network
-    # wg-quick sets src_valid_mark itself; unprivileged, /proc/sys is read-only and
-    # the tunnel fails to come up.
-    privileged: true
     sysctls:
       net.ipv4.conf.all.src_valid_mark: "1"
     capabilities:
@@ -27,6 +25,10 @@ containers:
       LAN_NETWORK: "{{ media_network_subnet }}, {{ lan_network }}"
       UMASK: "000"
     volumes:
+      # wg-quick re-sets src_valid_mark itself, which fails against the read-only
+      # /proc/sys an unprivileged container gets; the shim makes that redundant write
+      # a no-op so the tunnel comes up without privileged: true.
+      - "{{ docker_dir }}/qbittorrent/bin/sysctl:/usr/bin/sysctl:ro"
       - "{{ docker_dir }}/qbittorrent/data:/data"
       - "{{ docker_dir }}/qbittorrent/config:/config"
       - "{{ mergerfs_root }}:/tank"
