@@ -274,25 +274,25 @@ Flags worth knowing about:
 
 ### Adding a service
 
-Two edits. Create `services/<name>/service.yml`, which is a list of
+Three edits:
+
+**1. Create `services/<name>/service.yml`**, a list of
 [`community.docker.docker_container`](https://docs.ansible.com/ansible/latest/collections/community/docker/docker_container_module.html)
 parameters exactly as the module documents them — there is no schema to translate into,
-and a parameter the engine has never seen passes straight through:
+and a parameter the engine has never seen passes straight through.
 
-```yaml
-containers:
-  - proxied: true
-    image: ghcr.io/linuxserver/sonarr:latest
-    networks:
-      - name: media_network
-    volumes:
-      - "{{ docker_dir }}/sonarr:/config"
-      - "{{ mergerfs_root }}:/tank"
-```
+**2. Register it in `group_vars/all/vars.yml`** by adding the flag, off:
 
-Then add `enable_container_<name>: false` to `group_vars/all/vars.yml`. `run.yml` is
-not touched. `roles/container` asserts that the flags and the `services/` directories
-agree and fails the run if they don't.
+Not necessary, but this is the authoratitive list of variables.
+
+**3. Switch it on in `group_vars/<your inventory name>/vars.yml`**, the same file you
+made during setup:
+
+Skip this step and the service is declared but never deployed.
+
+The assert looks at variable *names*, and both files share one namespace, so it does
+not care which of the two a flag comes from. Defining it only in step 3 satisfies it
+just as well; step 2 is what keeps the repo self-describing.
 
 The container name, the `nas-setup.service` label, `pull`, `state`, the restart policy,
 the `PUID`/`PGID`/`TZ` block, the `/etc/localtime` mount and the strict network
@@ -304,7 +304,7 @@ A definition may also set two keys the engine consumes itself:
 - `network:` — a private Docker network to create (`name`, optional `ipam_config`).
 - `hook: true` — run `services/<name>/hook.yml` before the containers, so it can set
   facts they interpolate. Only `jellyfin` (sysctl), `lidarr` and `nextcloud` (cron)
-  and `qbittorrent` (VPN config, subnet lookup) need one.
+  and `qbittorrent` (VPN config, subnet lookup) need one currently.
 
 Directory names use hyphens, never underscores, since the flag is derived as
 `enable_container_<name with hyphens replaced by underscores>` and has to map back
