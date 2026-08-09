@@ -12,7 +12,7 @@
   register: service_dirs
 
 # Enumerated from the flags rather than the directory listing, so group_vars stays the
-# register of what this playbook knows how to run; the asserts below keep the two
+# register of what this playbook knows how to run; the check below keeps the two
 # honest. Hyphens are not legal in a variable name, so the flag substitutes
 # underscores -- which requires that a service name never contains one.
 - name: Build the service list from the enable_container_* flags
@@ -35,15 +35,33 @@
     fail_msg: "Rename these to enable_container_*: {{ legacy | join(', ') }}"
     quiet: true
 
-- name: Fail if the flags and the definitions disagree
-  ansible.builtin.assert:
-    that: container_services == defined_services
-    fail_msg: >-
-      flags with no definition:
-      {{ container_services | difference(defined_services) | join(', ') | default('none', true) }};
-      definitions with no flag:
-      {{ defined_services | difference(container_services) | join(', ') | default('none', true) }}
-    quiet: true
+# Only one direction of drift is dangerous. A definition with no flag is skipped by the
+# deploy loop below and torn down by container-fleet, silently, so it stays fatal. A
+# flag with no definition drives nothing -- teardown iterates the directories and the
+# loop below skips a falsy flag before reading anything -- so it only warns.
+- name: Check the flags against the service definitions
+  vars:
+    # A targeted run answers only for what it was asked to deploy, so drift in an
+    # unrelated service cannot block it.
+    _targeted: "{{ service_filter.split(',') if service_filter is defined else defined_services }}"
+    _unflagged: "{{ defined_services | difference(container_services) | intersect(_targeted) }}"
+    _orphaned: "{{ container_services | difference(defined_services) }}"
+  block:
+    - name: Warn about flags with no service definition
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: no services/ directory for {{ _orphaned | join(', ') }}.
+          The flag deploys nothing -- drop it, or add the definition.
+      when: _orphaned | length > 0
+
+    - name: Fail on service definitions with no flag
+      ansible.builtin.assert:
+        that: _unflagged | length == 0
+        fail_msg: >-
+          No enable_container_* flag for {{ _unflagged | join(', ') }}. Add
+          enable_container_<name> to group_vars/all/vars.yml -- without one the service
+          is never deployed and container-fleet tears it down.
+        quiet: true
 
 - name: Deploy the enabled services
   ansible.builtin.include_tasks: service.yml
