@@ -2,6 +2,10 @@
 - name: Configure essential system settings
   ansible.builtin.include_tasks: essential.yml
 
+- name: Disable IPv6
+  ansible.builtin.include_tasks: ipv6.yml
+  when: not (enable_ipv6 | default(false))
+
 - name: Remove snapd
   ansible.builtin.include_tasks: yeet_snaps.yml
 

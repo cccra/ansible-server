@@ -1,0 +1,19 @@
+---
+# `all` covers the interfaces that already exist, `default` the ones Docker creates
+# later. Loopback is re-enabled afterwards -- `all` switches it off too, and plenty of
+# software still expects ::1 to answer. Order matters: systemd-sysctl replays this
+# file top to bottom at boot.
+- name: Disable IPv6
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/99-disable-ipv6.conf
+    sysctl_set: true
+    state: present
+    reload: true
+  loop:
+    - { name: net.ipv6.conf.all.disable_ipv6, value: "1" }
+    - { name: net.ipv6.conf.default.disable_ipv6, value: "1" }
+    - { name: net.ipv6.conf.lo.disable_ipv6, value: "0" }
+  loop_control:
+    label: "{{ item.name }}"

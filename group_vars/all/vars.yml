@@ -175,6 +175,10 @@ enable_container_watchtower: false
 enable_container_cloudflare_ddns: false
 enable_container_nginx_proxy_manager: false
 
+# IPv6 is disabled in the kernel and shut at the firewall. nas-firewall.sh only
+# filters IPv4, so setting this true leaves the v6 side unfiltered.
+enable_ipv6: false
+
 # Security
 enable_crowdsec: false
 enable_iptables: false

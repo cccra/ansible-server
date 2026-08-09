@@ -32,6 +32,20 @@ iptables -A DOCKER-USER -p tcp -m conntrack --ctorigdstport {{ port }} -j RETURN
 
 iptables -A DOCKER-USER -j DROP
 
+{% if not (enable_ipv6 | default(false)) %}
+# IPv6 is disabled in the kernel, so this is the second lock rather than the only
+# one: anything that turns the stack back on -- a kernel arg, an RA, a stray sysctl --
+# finds the host shut instead of wide open. Docker leaves its own v6 chains here, so
+# the built-ins are rebuilt rather than the whole table flushed.
+ip6tables -F INPUT
+ip6tables -F OUTPUT
+ip6tables -A INPUT -i lo -j ACCEPT
+ip6tables -A OUTPUT -o lo -j ACCEPT
+ip6tables -P INPUT DROP
+ip6tables -P FORWARD DROP
+ip6tables -P OUTPUT DROP
+{% endif %}
+
 # Applied last so a failure above cannot lock out SSH.
 iptables -P INPUT DROP
 iptables -P FORWARD DROP
