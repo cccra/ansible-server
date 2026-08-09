@@ -92,8 +92,8 @@ and the collections the playbook needs (`community.docker`, `community.general`,
 `ansible.posix`):
 
 ```bash
-git clone https://github.com/cccra/nas-setup
-cd nas-setup
+git clone https://github.com/cccra/ansible-server
+cd ansible-server
 ansible-galaxy install -r requirements.yml
 ```
 
@@ -283,7 +283,7 @@ and a parameter the engine has never seen passes straight through.
 
 **2. Register it in `group_vars/all/vars.yml`** by adding the flag, off:
 
-Not necessary, but this is the authoratitive list of variables.
+Not necessary, but this is the authorititive list of variables.
 
 **3. Switch it on in `group_vars/<your inventory name>/vars.yml`**, the same file you
 made during setup:
