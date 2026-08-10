@@ -12,6 +12,35 @@ containers:
       WATCHTOWER_NOTIFICATIONS: shoutrrr
       WATCHTOWER_NOTIFICATIONS_LEVEL: info
       WATCHTOWER_NOTIFICATION_REPORT: "true"
+      # The stock report lists every container it scanned, most of them only to say
+      # nothing happened, and identifies each image by a pair of sha256 prefixes. This
+      # one names the containers that actually changed, identifies them by image tag --
+      # the version, which is what the tags on the pinned datastores carry -- and
+      # accounts for the rest in a single line. Failures are kept: a container left
+      # behind on an old image is not "everything else". The template renders empty when
+      # nothing changed or failed, which Watchtower reads as nothing to send.
+      # {% raw %} is what stops Ansible reading Go's {{ }} as Jinja.
+      WATCHTOWER_NOTIFICATION_TEMPLATE: |-
+        {% raw %}{{- if .Report -}}
+        {{- with .Report -}}
+        {{- if or .Updated .Failed -}}
+        {{- if .Updated }}Updated {{ len .Updated }} of {{ len .Scanned }} containers:
+        {{ range .Updated }}
+          - {{ .Name }} ({{ .ImageName }})
+        {{- end }}
+
+        {{ end -}}
+        {{- if .Failed }}Failed to update {{ len .Failed }} of {{ len .Scanned }} containers:
+        {{ range .Failed }}
+          - {{ .Name }} ({{ .ImageName }}): {{ .Error }}
+        {{- end }}
+
+        {{ end -}}
+        {{- if .Fresh }}Everything else is up to date.
+        {{ end -}}
+        {{- end -}}
+        {{- end -}}
+        {{- end -}}{% endraw %}
       WATCHTOWER_NOTIFICATION_URL: >-
         smtp://{{ email_login | urlencode | regex_replace('/', '%2F') }}:{{ email_password | urlencode | regex_replace('/', '%2F') }}@{{ email_smtp_host }}:{{ email_smtp_port_startls }}/?from={{ email | urlencode }}&to={{ email | urlencode }}&auth=Plain&useStartTLS=yes
     volumes:

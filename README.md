@@ -351,6 +351,12 @@ exclusion label, so patches flow but a major upgrade — which for these means a
 format change the container cannot perform unattended — never arrives unasked. Moving
 up a line is a deliberate edit to `group_vars/all/vars.yml`.
 
+A run that changes something emails a report of just that: the containers it updated,
+each named with the image tag it now runs rather than the pair of sha256 prefixes the
+stock report prints, then one line accounting for everything it left alone. Failed
+updates are listed too — a container still on its old image is not "everything else". A
+run with nothing to do sends nothing.
+
 ## Development
 
 Lint before committing (neither linter is a runtime dependency):
