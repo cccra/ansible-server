@@ -195,9 +195,14 @@ enable_cloudflare: false
 # Also adds the login user to sambashare. The role itself is commented out of run.yml.
 enable_samba: false
 
-# Left unset, roles/nvidia runs automatically whenever a GPU-consuming service
-# (jellyfin, immich, tdarr, openreader) is enabled. Set to force it on or off.
-# enable_nvidia: false
+# Host driver and container toolkit, on wherever a GPU-consuming service is enabled.
+# Set false on a host with no NVIDIA card: the role is skipped and the services drop
+# the device_requests that a driverless Docker daemon cannot satisfy.
+enable_nvidia: >-
+  {{ enable_container_jellyfin | default(false)
+     or enable_container_immich | default(false)
+     or enable_container_tdarr | default(false)
+     or enable_container_openreader | default(false) }}
 
 # Powersaving (powertop, cpufreq)
 enable_powersaving: false

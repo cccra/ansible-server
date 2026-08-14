@@ -74,8 +74,9 @@ after hardening. `upload_iso.yml` will build and upload an autoinstall Ubuntu IS
 you need to bring the box up in the first place.
 
 If you want the storage stack you need the data disks labelled and present; if you want
-the GPU services you need an NVIDIA card (the driver and container toolkit are
-installed for you, and the host is rebooted if a kernel update requires it).
+hardware transcoding you need an NVIDIA card (the driver and container toolkit are
+installed for you, and the host is rebooted if a kernel update requires it). On a host
+without one, set `enable_nvidia: false`.
 
 ## Getting started
 
@@ -265,9 +266,10 @@ Flags worth knowing about:
   `ironicbadger.snapraid`. Parity, disk lists and the weekly snapraid-runner cron —
   which stops the containers, rsyncs `/opt/docker/data` to the array, then syncs — are
   all configured in `group_vars/all/vars.yml`.
-- `enable_nvidia` is unset by default; `roles/nvidia` runs automatically whenever a
-  GPU-consuming service (jellyfin, immich, tdarr, openreader) is enabled. Set it to
-  force the driver and container toolkit on or off.
+- `enable_nvidia` defaults to on whenever a GPU-consuming service (jellyfin, immich,
+  tdarr, openreader) is enabled. Set it to `false` on a host with no NVIDIA card:
+  `roles/nvidia` is skipped and those services deploy without their GPU request, which
+  a Docker daemon with no NVIDIA runtime would refuse to create.
 - `enable_ipv6` is `false`. IPv6 is disabled in the kernel and shut at the firewall;
   `nas-firewall.sh` only filters IPv4, so turning it on leaves the v6 side unfiltered.
 - `docker_wan_ports` lists the published container ports reachable from the internet.

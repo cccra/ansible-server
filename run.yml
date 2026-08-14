@@ -65,13 +65,7 @@
       become: true
       tags:
         - nvidia
-      when: >-
-        enable_nvidia | default(
-          enable_container_jellyfin | default(false)
-          or enable_container_immich | default(false)
-          or enable_container_tdarr | default(false)
-          or enable_container_openreader | default(false)
-        )
+      when: enable_nvidia | bool
 
     - role: chriswayg.msmtp-mailer
       tags:

@@ -38,9 +38,12 @@
     # Without this the module's allow_more_present default leaves a container attached
     # to a network dropped from its definition, silently eroding the zone split.
     _strict: "{{ {'comparisons': {'networks': 'strict'}} if item.networks is defined else {} }}"
+    # device_requests goes with it on a host without the NVIDIA stack: the daemon there
+    # has no runtime to satisfy the request and refuses to create the container.
+    _stripped: "{{ container_meta_keys + ([] if enable_nvidia | bool else ['device_requests']) }}"
   community.docker.docker_container: >-
     {{ _conventions | combine(item) | combine(_merged) | combine(_strict)
-       | dict2items | rejectattr('key', 'in', container_meta_keys) | items2dict }}
+       | dict2items | rejectattr('key', 'in', _stripped) | items2dict }}
   loop: "{{ svc.containers }}"
   loop_control:
     label: "{{ item.name | default(service) }}"
