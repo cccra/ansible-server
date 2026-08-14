@@ -24,7 +24,8 @@ containers:
       - name: app_network
       - name: openreader_network
     env:
-      BASE_URL: "https://openreader.{{ host }}"
+      BASE_URL: "http://localhost:3003"
+      AUTH_TRUSTED_ORIGINS: "https://openreader.{{ host }}"
       AUTH_SECRET: "{{ openreader_auth_secret }}"
       ADMIN_EMAILS: "{{ email }}"
       S3_ENDPOINT: "http://127.0.0.1:8333"
