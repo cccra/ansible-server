@@ -18,7 +18,10 @@ containers:
       VPN_PROV: custom
       VPN_CLIENT: wireguard
       ENABLE_PRIVOXY: "yes"
-      NAME_SERVERS: "{{ ','.join(dns_nameservers) }}"
+      # Public resolvers only: this container's default route is the tunnel, so
+      # adguard's address resolves to a route out through the VPN rather than to
+      # adguard_network, and every lookup would burn a timeout on it first.
+      NAME_SERVERS: "1.1.1.1,1.0.0.1"
       # Must track whichever network this container is on: the VPN image drops
       # inbound traffic from anywhere outside LAN_NETWORK, so leaving app_network
       # here would cut the arrs and NPM off from the WebUI.
