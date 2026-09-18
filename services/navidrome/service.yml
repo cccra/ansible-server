@@ -1,12 +1,15 @@
 ---
+hook: true
+
 containers:
   - proxied: true
     image: deluan/navidrome:develop
     networks:
       - name: app_network
     env:
-      ND_SPOTIFY_ID: "{{ spotify_id }}"
-      ND_SPOTIFY_SECRET: "{{ spotify_secret }}"
+      ND_PLUGINS_AUTORELOAD: "true"
+      ND_AGENTS: "{{ 'audiomuseai,' if enable_container_audiomuse_ai | default(false) | bool else '' }}deezer,lastfm,listenbrainz"
     volumes:
       - "{{ docker_dir }}/navidrome:/data"
       - "{{ mergerfs_root }}/Media/Music:/music:ro"
+      - "{{ mergerfs_root }}/Media/Classical_Music:/classical_music:ro"

@@ -2,7 +2,7 @@
 
 My Ansible NAS setup. One playbook (`run.yml`) takes a bare Ubuntu box and turns it
 into a self-hosted NAS/homelab server: base system, storage (MergerFS + SnapRAID),
-security hardening, and 34 services that each run as a Docker container behind a
+security hardening, and 35 services that each run as a Docker container behind a
 reverse proxy.
 
 Everything is off by default. You pick what you want with `enable_*` flags in your own
@@ -15,6 +15,7 @@ match.
 
 - **[Jellyfin](https://jellyfin.org/)** — film and TV streaming, with NVIDIA hardware transcoding
 - **[Navidrome](https://www.navidrome.org/)** — music streaming
+- **[AudioMuse-AI](https://github.com/NeptuneHub/AudioMuse-AI)** — sonic analysis and playlist generation for the Navidrome library; its Navidrome plugin drives Instant Mix, artist radio and similar artists
 - **[Audiobookshelf](https://www.audiobookshelf.org/)** — audiobooks and podcasts
 - **[OpenReader](https://github.com/richardr1126/openreader)** — ebook reader with GPU text-to-speech
 - **[Tdarr](https://tdarr.io/)** — automated library transcoding
@@ -192,7 +193,7 @@ A few things worth knowing about those:
 
 ## Reaching your services
 
-Almost nothing publishes a port. 29 of the 34 services are marked `proxied: true` and
+Almost nothing publishes a port. 30 of the 35 services are marked `proxied: true` and
 are reached through nginx-proxy-manager, which terminates TLS and routes by hostname —
 so you point a wildcard DNS record at the box, add a proxy host in the NPM admin UI on
 port 81, and the service answers at `https://<name>.<your domain>`.
@@ -299,14 +300,15 @@ just as well; step 2 is what keeps the repo self-describing.
 The container name, the `nas-setup.service` label, `pull`, `state`, the restart policy,
 the `PUID`/`PGID`/`TZ` block, the `/etc/localtime` mount and the strict network
 comparison are all supplied by the engine — a definition should not restate them.
-`services/navidrome/service.yml` is the template to copy.
+`services/linkding/service.yml` is the template to copy.
 
 A definition may also set two keys the engine consumes itself:
 
 - `network:` — a private Docker network to create (`name`, optional `ipam_config`).
 - `hook: true` — run `services/<name>/hook.yml` before the containers, so it can set
-  facts they interpolate. Only `jellyfin` (sysctl), `lidarr` and `nextcloud` (cron)
-  and `qbittorrent` (VPN config, subnet lookup) need one currently.
+  facts they interpolate. Only `jellyfin` (sysctl), `lidarr` and `nextcloud` (cron),
+  `navidrome` (AudioMuse-AI plugin) and `qbittorrent` (VPN config, subnet lookup) need
+  one currently.
 
 Directory names use hyphens, never underscores, since the flag is derived as
 `enable_container_<name with hyphens replaced by underscores>` and has to map back
@@ -323,7 +325,7 @@ documents in Paperless, or the photos in Immich.
 |---|---|
 | `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr. Flat internally — the arrs drive qbittorrent, prowlarr drives flaresolverr, jellyseerr drives jellyfin and the arrs. |
 | `app_network` | Low-stakes services that talk to nothing but the proxy: audiobookshelf, dashdot, grocy, linkding, navidrome, tdarr |
-| `<service>_network` | One per service worth walling off. Sole network for vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja and homarr; a back-end network for adguard, gramps, tandoor, openreader, wallabag and wireguard, whose web container also sits on `app_network`. |
+| `<service>_network` | One per service worth walling off. Sole network for vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja and homarr; a back-end network for adguard, gramps, tandoor, openreader, wallabag and wireguard, whose web container also sits on `app_network`. audiomuse-ai has one for its database; its web and worker containers also sit on `app_network`, where they reach Navidrome. |
 
 `app_network` and `media_network` are the shared zones, identified as the networks no
 service claims with a `network:` key. Only `app_network` has a pinned subnet, because

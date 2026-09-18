@@ -1,0 +1,39 @@
+---
+network:
+  name: audiomuse_network
+
+containers:
+  - name: audiomuse-ai-postgres
+    image: postgres:15-alpine
+    networks:
+      - name: audiomuse_network
+    env:
+      POSTGRES_USER: audiomuse
+      POSTGRES_PASSWORD: "{{ audiomuse_db_password }}"
+      POSTGRES_DB: audiomusedb
+    volumes:
+      - "{{ docker_dir }}/audiomuse-ai/postgres:/var/lib/postgresql/data"
+
+  # CPU image: the -nvidia builds are CUDA 13, which carries no Pascal (sm_61) kernels,
+  # so the P2000 cannot run them and every model load falls back to CPU anyway.
+  - name: audiomuse-ai-worker
+    image: &audiomuse_image ghcr.io/neptunehub/audiomuse-ai:latest
+    networks: &audiomuse_networks
+      - name: audiomuse_network
+      - name: app_network
+    env:
+      SERVICE_TYPE: worker
+      <<: &audiomuse_env
+        POSTGRES_HOST: audiomuse-ai-postgres
+        POSTGRES_PASSWORD: "{{ audiomuse_db_password }}"
+    volumes:
+      - "{{ docker_dir }}/audiomuse-ai/plugins/worker:/app/plugin/installed"
+
+  - proxied: true
+    image: *audiomuse_image
+    networks: *audiomuse_networks
+    env:
+      SERVICE_TYPE: flask
+      <<: *audiomuse_env
+    volumes:
+      - "{{ docker_dir }}/audiomuse-ai/plugins/flask:/app/plugin/installed"

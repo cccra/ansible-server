@@ -1,0 +1,27 @@
+---
+# Navidrome keeps plugin settings in its database, so enabling the plugin and setting its
+# API URL (http://audiomuse-ai:8000) and the API token from AudioMuse's setup wizard
+# happens once, in the Plugins admin page.
+- name: Create the plugins directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ docker_dir }}/navidrome/plugins"
+    state: directory
+    mode: "0700"
+
+# Follows the latest release, as Watchtower does for both images, so the three stay aligned.
+- name: Install the AudioMuse-AI plugin
+  become: true
+  ansible.builtin.get_url:
+    url: https://github.com/NeptuneHub/AudioMuse-AI-NV-plugin/releases/latest/download/audiomuseai.ndp
+    dest: "{{ docker_dir }}/navidrome/plugins/audiomuseai.ndp"
+    mode: "0600"
+    force: true
+  when: enable_container_audiomuse_ai | default(false) | bool
+
+- name: Remove the AudioMuse-AI plugin
+  become: true
+  ansible.builtin.file:
+    path: "{{ docker_dir }}/navidrome/plugins/audiomuseai.ndp"
+    state: absent
+  when: not enable_container_audiomuse_ai | default(false) | bool
