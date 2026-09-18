@@ -1,0 +1,38 @@
+---
+# A real Chromium, streamed into a web page over WebRTC, whose every request goes
+# through Privoxy in the qbittorrent container and so out of the WireGuard tunnel.
+# Pages render exactly as they would locally; only the exit address differs. The
+# page itself asks for a password before it shows anything.
+hook: true
+
+containers:
+  - proxied: true
+    image: ghcr.io/m1k1o/neko/chromium:latest
+    # media_network because that is where Privoxy (qbittorrent:8118) answers.
+    networks:
+      - name: media_network
+    shm_size: 2G
+    # WebRTC cannot go through nginx-proxy-manager: the media leaves on this port,
+    # published unmapped because ICE advertises the same number it listens on. UDP is
+    # the better transport and works from the LAN; the firewall's WAN rules are
+    # TCP-only, so from outside ICE falls back to the TCP side of the same port.
+    ports:
+      - "{{ neko_webrtc_port }}:{{ neko_webrtc_port }}/udp"
+      - "{{ neko_webrtc_port }}:{{ neko_webrtc_port }}/tcp"
+    env:
+      NEKO_DESKTOP_SCREEN: 1920x1080@30
+      # Trust X-Forwarded-* from NPM.
+      NEKO_SERVER_PROXY: "true"
+      NEKO_MEMBER_PROVIDER: multiuser
+      NEKO_MEMBER_MULTIUSER_USER_PASSWORD: "{{ neko_user_password }}"
+      NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: "{{ neko_admin_password }}"
+      NEKO_WEBRTC_UDPMUX: "{{ neko_webrtc_port | string }}"
+      NEKO_WEBRTC_TCPMUX: "{{ neko_webrtc_port | string }}"
+      # The address ICE hands to clients. Unset, neko looks its public IP up at
+      # startup, which is what "from anywhere" needs; the LAN then relies on the
+      # router hairpinning. Pin it to lan_address for a LAN-only instance.
+      NEKO_WEBRTC_NAT1TO1: "{{ neko_webrtc_nat1to1 | default('', true) or omit }}"
+    volumes:
+      # Chromium merges every JSON file in this directory, so the proxy policy the
+      # hook writes sits beside neko's own policies.json instead of replacing it.
+      - "{{ docker_dir }}/neko/policies/proxy.json:/etc/chromium/policies/managed/proxy.json:ro"

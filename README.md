@@ -2,7 +2,7 @@
 
 My Ansible NAS setup. One playbook (`run.yml`) takes a bare Ubuntu box and turns it
 into a self-hosted NAS/homelab server: base system, storage (MergerFS + SnapRAID),
-security hardening, and 34 services that each run as a Docker container behind a
+security hardening, and 35 services that each run as a Docker container behind a
 reverse proxy.
 
 Everything is off by default. You pick what you want with `enable_*` flags in your own
@@ -29,6 +29,7 @@ match.
 - **[FlareSolverr](https://github.com/FlareSolverr/FlareSolverr)** — Cloudflare challenge solver for Prowlarr
 - **[Unpackerr](https://unpackerr.zip/)** — extracts completed downloads
 - **[qBittorrent](https://www.qbittorrent.org/)** — torrents, forced through a WireGuard tunnel
+- **[neko](https://neko.m1k1o.net/)** — a Chromium in a web page that browses through that same tunnel, via qBittorrent's Privoxy
 
 ### Files and documents
 
@@ -192,7 +193,7 @@ A few things worth knowing about those:
 
 ## Reaching your services
 
-Almost nothing publishes a port. 29 of the 34 services are marked `proxied: true` and
+Almost nothing publishes a port. 30 of the 35 services are marked `proxied: true` and
 are reached through nginx-proxy-manager, which terminates TLS and routes by hostname —
 so you point a wildcard DNS record at the box, add a proxy host in the NPM admin UI on
 port 81, and the service answers at `https://<name>.<your domain>`.
@@ -204,6 +205,7 @@ Only these publish a port directly:
 | nginx-proxy-manager | 80, 443 | all interfaces |
 | WireGuard | 51820/udp | all interfaces |
 | Gitea SSH | 222 | all interfaces |
+| neko WebRTC | `neko_webrtc_port` (59000) tcp/udp | all interfaces |
 | nginx-proxy-manager admin | 81 | `lan_address` |
 | AdGuard Home | 53 tcp/udp, 3030 | `lan_address` |
 | qBittorrent (Privoxy) | 8118 | `lan_address` |
@@ -222,6 +224,33 @@ Note that the generated rules are TCP-only, so WireGuard's UDP port cannot be op
 this way. Container ports need their own chain because they bypass `INPUT` entirely —
 Docker DNATs them through `FORWARD` — so `DOCKER-USER` is the only place they can be
 filtered. Ports bound to `lan_address` are LAN-only regardless, firewall or not.
+
+### Browsing through the VPN
+
+neko streams a real Chromium into a web page over WebRTC, and that Chromium is pinned
+by policy to Privoxy in the qbittorrent container, so everything it loads leaves through
+the WireGuard tunnel and pages render exactly as they would locally. The page asks for
+a password before it shows anything.
+
+To enable it: set `enable_container_neko: true` alongside `enable_container_qbittorrent`,
+put `neko_user_password` and `neko_admin_password` in the vault, and add a proxy host in
+NPM pointing `neko.<your domain>` at `http://neko:8080` with *Websockets Support* on.
+Then log in with any username and the user password (the admin password gets the admin
+role), and browse.
+
+The video itself cannot go through NPM, because WebRTC is not HTTP. It uses
+`neko_webrtc_port` instead, published on UDP and TCP. From the LAN that just works. From
+the internet, add the port to `docker_wan_ports` (the hook warns if you forget), forward
+it on the router, and ICE falls back to TCP since the generated rules are TCP-only.
+neko looks its public IP up at startup and hands that to every client, so LAN use then
+depends on the router hairpinning; for an instance you only ever use from the LAN, set
+`neko_webrtc_nat1to1` to `lan_address` instead.
+
+The proxy is a Chromium policy rather than a flag, so it cannot be changed from inside
+the browser, there is no bypass list, and WebRTC inside the page is held to the proxy
+too. The profile is not persisted: each recreation of the container starts clean.
+Expect a couple of CPU cores and around 2 GB of RAM while a session is open, since the
+video is encoded in software.
 
 ## How it's put together
 
@@ -305,8 +334,9 @@ A definition may also set two keys the engine consumes itself:
 
 - `network:` — a private Docker network to create (`name`, optional `ipam_config`).
 - `hook: true` — run `services/<name>/hook.yml` before the containers, so it can set
-  facts they interpolate. Only `jellyfin` (sysctl), `lidarr` and `nextcloud` (cron)
-  and `qbittorrent` (VPN config, subnet lookup) need one currently.
+  facts they interpolate. Only `jellyfin` (sysctl), `lidarr` and `nextcloud` (cron),
+  `qbittorrent` (VPN config, subnet lookup) and `neko` (Chromium proxy policy) need one
+  currently.
 
 Directory names use hyphens, never underscores, since the flag is derived as
 `enable_container_<name with hyphens replaced by underscores>` and has to map back
@@ -321,7 +351,7 @@ documents in Paperless, or the photos in Immich.
 
 | Network | Contents |
 |---|---|
-| `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr. Flat internally — the arrs drive qbittorrent, prowlarr drives flaresolverr, jellyseerr drives jellyfin and the arrs. |
+| `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr, neko. Flat internally — the arrs drive qbittorrent, prowlarr drives flaresolverr, jellyseerr drives jellyfin and the arrs, neko browses through qbittorrent's Privoxy. |
 | `app_network` | Low-stakes services that talk to nothing but the proxy: audiobookshelf, dashdot, grocy, linkding, navidrome, tdarr |
 | `<service>_network` | One per service worth walling off. Sole network for vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja and homarr; a back-end network for adguard, gramps, tandoor, openreader, wallabag and wireguard, whose web container also sits on `app_network`. |
 

@@ -91,6 +91,14 @@ mysql_image: "mysql:8.4"
 
 redis_image: "redis:8-alpine"
 
+# neko's WebRTC media port, UDP and TCP, published unmapped. Reaching it from the
+# internet means adding it to docker_wan_ports (TCP) and forwarding it on the router.
+neko_webrtc_port: 59000
+
+# The address neko tells browsers to send media to. Empty looks the public IP up at
+# startup; set it to lan_address for an instance only ever used from the LAN.
+neko_webrtc_nat1to1: ""
+
 # Six fields, leading one is seconds.
 watchtower_schedule: "0 0 5 * * *"
 
@@ -147,6 +155,8 @@ enable_container_audiobookshelf: false
 enable_container_jellyseerr: false
 enable_container_immich: false
 enable_container_qbittorrent: false
+# Chromium in a web page, browsing through Privoxy in the qbittorrent container.
+enable_container_neko: false
 enable_container_sonarr: false
 enable_container_radarr: false
 enable_container_lazylibrarian: false
@@ -347,6 +357,8 @@ smartd_default_mail_recipients: ["{{ email }}"]
 #   radarr_api                    # unpackerr
 #   lidarr_api                    # unpackerr
 #   qbittorrent_wg_config         # block scalar; full WireGuard config
+#   neko_user_password            # neko; what the page asks for
+#   neko_admin_password           # neko; admin role, can kick sessions
 #   cloudflare_dns_token          # cloudflare-ddns
 #   cloudflare_firewall_token     # fail2ban, only if enable_cloudflare
 #

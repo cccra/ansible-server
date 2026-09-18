@@ -1,0 +1,58 @@
+---
+# Neko has no route of its own to the internet worth having: Chromium is pinned to
+# Privoxy, which only exists while the qbittorrent container is running.
+- name: Fail if qbittorrent, which provides the Privoxy upstream, is not enabled
+  ansible.builtin.assert:
+    that: enable_container_qbittorrent | default(false) | bool
+    fail_msg: >-
+      neko browses through Privoxy in the qbittorrent container, so
+      enable_container_qbittorrent must be true as well.
+    quiet: true
+
+- name: Fail if the neko passwords are missing
+  ansible.builtin.assert:
+    that:
+      - neko_user_password is defined
+      - neko_admin_password is defined
+    fail_msg: >-
+      Define neko_user_password and neko_admin_password in
+      group_vars/<inventory>/vault.yml.
+    quiet: true
+
+# A LAN-only firewall silently breaks the video from outside while the page itself
+# still loads over NPM, which is a confusing way to find out.
+- name: Warn if the WebRTC port is not reachable from the internet
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: enable_iptables is on and {{ neko_webrtc_port }} is not in
+      docker_wan_ports, so neko's video will only connect from the LAN. Add it there
+      (and forward it on the router) to use it from anywhere.
+  when:
+    - enable_iptables | default(false) | bool
+    - neko_webrtc_port | int not in (docker_wan_ports | default([]) | map('int') | list)
+
+- name: Create the neko policy directory
+  ansible.builtin.file:
+    path: "{{ docker_dir }}/neko/policies"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0755"
+
+# Chromium policy rather than a command-line flag, so a user in the browser cannot
+# change it. No bypass list: anything not sent to Privoxy would leave with the home
+# address. WebRTC inside the page is held to the proxy for the same reason.
+- name: Install the Chromium proxy policy
+  ansible.builtin.copy:
+    content: >-
+      {{ {
+        'ProxySettings': {
+          'ProxyMode': 'fixed_servers',
+          'ProxyServer': 'qbittorrent:8118'
+        },
+        'WebRtcIPHandling': 'disable_non_proxied_udp'
+      } | to_nice_json(indent=2) }}
+    dest: "{{ docker_dir }}/neko/policies/proxy.json"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0644"
