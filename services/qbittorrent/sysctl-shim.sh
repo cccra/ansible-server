@@ -3,12 +3,19 @@
 # `sysctl -q net.ipv4.conf.all.src_valid_mark=1` fails and its `set -e` tears the
 # tunnel back down. Docker's --sysctl has already applied that value, so treat a
 # write that requests the value already in place as success. A write that would
-# actually change something still fails, loudly.
+# actually change something still fails, loudly. `-n` prints the bare value, which
+# wg-quick feeds straight into an arithmetic comparison.
 quiet=0
+bare=0
 keys=()
 for a in "$@"; do
   case "$a" in
-    -q|--quiet) quiet=1 ;;
+    --quiet) quiet=1 ;;
+    --values) bare=1 ;;
+    -[!-]*)
+      [[ $a == *q* ]] && quiet=1
+      [[ $a == *n* ]] && bare=1
+      ;;
     -*) ;;
     *) keys+=("$a") ;;
   esac
@@ -30,8 +37,8 @@ for a in "${keys[@]}"; do
         exit 1
       fi
     fi
-    (( quiet )) || echo "$key = $val"
+    (( quiet )) || { (( bare )) && echo "$val" || echo "$key = $val"; }
   else
-    echo "$key = $cur"
+    (( bare )) && echo "$cur" || echo "$key = $cur"
   fi
 done
