@@ -193,6 +193,11 @@ docker_wan_ports: []
 # cloudflare_firewall_token (vault).
 enable_cloudflare: false
 
+# Records cloudflare-ddns points at this host's public IP. Any Cloudflare zone the
+# token can edit; a wildcard like "*.example.com" covers every proxied subdomain.
+cloudflare_ddns_domains:
+  - "{{ host }}"
+
 # Also adds the login user to sambashare. The role itself is commented out of run.yml.
 enable_samba: false
 
@@ -347,7 +352,7 @@ smartd_default_mail_recipients: ["{{ email }}"]
 #   radarr_api                    # unpackerr
 #   lidarr_api                    # unpackerr
 #   qbittorrent_wg_config         # block scalar; full WireGuard config
-#   cloudflare_dns_token          # cloudflare-ddns
+#   cloudflare_dns_token          # cloudflare-ddns; Zone:DNS:Edit on every zone it updates
 #   cloudflare_firewall_token     # fail2ban, only if enable_cloudflare
 #
 # The database env vars are read only when a container initialises an EMPTY data

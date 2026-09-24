@@ -1,7 +1,13 @@
 ---
 containers:
-  - image: oznu/cloudflare-ddns:latest
+  - image: favonia/cloudflare-ddns:1
+    user: "{{ guid }}:{{ guid }}"
+    read_only: true
+    cap_drop: [all]
+    security_opts: [no-new-privileges:true]
     env:
-      API_KEY: "{{ cloudflare_dns_token }}"
-      ZONE: "{{ host }}"
+      CLOUDFLARE_API_TOKEN: "{{ cloudflare_dns_token }}"
+      DOMAINS: "{{ cloudflare_ddns_domains | join(',') }}"
+      IP6_PROVIDER: none
+      DETECTION_TIMEOUT: 1m
       PROXIED: "false"
