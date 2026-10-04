@@ -298,6 +298,35 @@ snapraid_runner_cron_jobs:
     weekday: "0"
     hour: "3"
 
+# rsync patterns, anchored at {{ docker_dir }}, left out of the weekly copy to the array.
+# Regenerable logs, temp files and caches only; metadata and the Jellyfin cache are kept.
+snapraid_backup_excludes:
+  - /sonarr/logs/
+  - /sonarr/logs.db*
+  - /radarr/logs/
+  - /radarr/logs.db*
+  - /lidarr/logs/
+  - /lidarr/logs.db*
+  - /prowlarr/logs/
+  - /prowlarr/logs.db*
+  - /bazarr/log/
+  - /lazylibrarian/log/
+  - /jellyfin/log/
+  - /seerr/logs/
+  - /tdarr/logs/
+  - /paperless/data/log/
+  - /audiobookshelf/metadata/logs/
+  - /gitea/data/gitea/log/
+  - /nextcloud/config/log/
+  - /grocy/config/log/
+  - /nginxproxymanager/data/logs/
+  - /adguard/work/data/querylog.json*
+  - /navidrome/cache/
+  - /gramps/cache/
+  - /gramps/thumb-cache/
+  - /gramps/tmp/
+  - /tandoor/staticfiles/
+
 # Guards against a bad mount or mass delete being committed to parity.
 snapraid_runner_delete_threshold: 250
 snapraid_runner_email_sendon: "error"
