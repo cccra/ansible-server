@@ -326,6 +326,8 @@ snapraid_backup_excludes:
   - /gramps/thumb-cache/
   - /gramps/tmp/
   - /tandoor/staticfiles/
+  - /immich/config/machine-learning/
+  - /qbittorrent/config/qBittorrent/config/ipc-socket
 
 # Guards against a bad mount or mass delete being committed to parity.
 snapraid_runner_delete_threshold: 250
