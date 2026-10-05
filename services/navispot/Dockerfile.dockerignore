@@ -1,0 +1,4 @@
+# Upstream ships no .dockerignore, so this one, read for the Dockerfile beside it, keeps
+# the checkout's .git out of the build context. Git rewrites its metadata on every
+# fetch, so with it in, COPY . . would rebuild an image with nothing new in it.
+.git

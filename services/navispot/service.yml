@@ -1,0 +1,23 @@
+---
+# Upstream publishes no image, so the hook builds one on the host from its source.
+#
+# Navidrome is called from the browser, not from this container, so the server URL to
+# enter in the UI is the public https://navidrome.<host>. Navidrome allows the
+# cross-origin requests that involves.
+hook: true
+
+containers:
+  - proxied: true
+    image: navispot
+    # No registry holds this image: a pull can only fail, and Watchtower has nothing to
+    # update it from. The hook rebuilds it from the latest source on container_pull=always.
+    pull: never
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+    networks:
+      - name: app_network
+    env:
+      SPOTIFY_CLIENT_ID: "{{ navispot_client_id }}"
+      SPOTIFY_CLIENT_SECRET: "{{ navispot_client_secret }}"
+      # Has to be registered as a Redirect URI on the Spotify app as well.
+      SPOTIFY_REDIRECT_URI: "https://navispot.{{ host }}/api/auth/callback"

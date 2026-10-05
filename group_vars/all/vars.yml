@@ -144,6 +144,7 @@ enable_container_jellyfin: false
 enable_container_wizarr: false
 enable_container_navidrome: false
 enable_container_audiomuse_ai: false
+enable_container_navispot: false
 enable_container_audiobookshelf: false
 enable_container_jellyseerr: false
 enable_container_immich: false
@@ -377,6 +378,8 @@ smartd_default_mail_recipients: ["{{ email }}"]
 #   openreader_s3_secret_key      # openreader embedded SeaweedFS
 #   homarr_key                    # homarr SECRET_ENCRYPTION_KEY
 #   audiomuse_db_password         # audiomuse-ai
+#   navispot_client_id            # navispot; the Spotify app's, from its developer dashboard
+#   navispot_client_secret        # navispot
 #   linkding_admin                # linkding
 #   linkding_admin_password       # linkding
 #   sonarr_api                    # unpackerr

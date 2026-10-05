@@ -1,0 +1,51 @@
+---
+# Builds the image service.yml runs, from upstream's source and the Dockerfile beside
+# this file.
+- name: Check out the source
+  ansible.builtin.git:
+    repo: https://github.com/betsha1830/navispot.git
+    dest: "{{ docker_dir }}/navispot/src"
+    version: main
+    depth: 1
+    # New commits arrive on the switch that makes a run pull every other image, since
+    # Watchtower cannot update this one.
+    update: "{{ container_pull == 'always' }}"
+  register: navispot_source
+
+- name: Install the Dockerfile and its ignore file
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/services/navispot/{{ item }}"
+    dest: "{{ docker_dir }}/navispot/{{ item }}"
+    mode: "0640"
+  loop:
+    - Dockerfile
+    - Dockerfile.dockerignore
+  register: navispot_build_files
+
+# container_pull=always rebuilds even with nothing new checked out, which retries a
+# build that failed after the checkout had already moved on and picks up a newer base
+# image. A rebuild of unchanged inputs comes back as the same image, and so leaves the
+# container alone -- but only without the default provenance attestation, which
+# records the build time and, under the containerd image store, is part of the ID.
+- name: Build the image
+  community.docker.docker_image_build:
+    name: navispot
+    path: "{{ docker_dir }}/navispot/src"
+    dockerfile: ../Dockerfile
+    labels:
+      nas-setup.service: navispot
+    pull: "{{ container_pull == 'always' }}"
+    rebuild: >-
+      {{ 'always' if container_pull == 'always' or navispot_source is changed
+         or navispot_build_files is changed else 'never' }}
+  environment:
+    BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+
+# The legacy image store keeps each build a rebuild replaces, and Watchtower's cleanup
+# never sees them. The one the container is still running on goes on the next run.
+- name: Remove superseded builds
+  community.docker.docker_prune:
+    images: true
+    images_filters:
+      dangling: true
+      label: nas-setup.service=navispot

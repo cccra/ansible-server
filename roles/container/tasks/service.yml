@@ -25,8 +25,6 @@
   vars:
     _conventions:
       name: "{{ service }}"
-      labels:
-        nas-setup.service: "{{ service }}"
       pull: "{{ container_pull }}"
       state: started
       restart_policy: unless-stopped
@@ -35,6 +33,8 @@
     _merged:
       env: "{{ container_env_defaults | combine(item.env | default({})) }}"
       volumes: "{{ container_volume_defaults + (item.volumes | default([])) }}"
+      # The one key a service cannot override: container-fleet tears down by it.
+      labels: "{{ item.labels | default({}) | combine({'nas-setup.service': service}) }}"
     # Without this the module's allow_more_present default leaves a container attached
     # to a network dropped from its definition, silently eroding the zone split.
     _strict: "{{ {'comparisons': {'networks': 'strict'}} if item.networks is defined else {} }}"
