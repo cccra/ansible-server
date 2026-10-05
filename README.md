@@ -2,8 +2,8 @@
 
 My Ansible NAS setup. One playbook (`run.yml`) takes a bare Ubuntu box and turns it
 into a self-hosted NAS/homelab server: base system, storage (MergerFS + SnapRAID),
-security hardening, and 35 services that each run as a Docker container behind a
-reverse proxy.
+security hardening, and a fleet of services that each run as a Docker container
+behind a reverse proxy.
 
 Everything is off by default. You pick what you want with `enable_*` flags in your own
 variable file, and re-running the playbook adds, updates, or tears down services to
@@ -193,8 +193,8 @@ A few things worth knowing about those:
 
 ## Reaching your services
 
-Almost nothing publishes a port. 30 of the 35 services are marked `proxied: true` and
-are reached through nginx-proxy-manager, which terminates TLS and routes by hostname —
+Almost nothing publishes a port. Nearly every service is marked `proxied: true` and is
+reached through nginx-proxy-manager, which terminates TLS and routes by hostname —
 so you point a wildcard DNS record at the box, add a proxy host in the NPM admin UI on
 port 81, and the service answers at `https://<name>.<your domain>`.
 
