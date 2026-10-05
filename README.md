@@ -16,6 +16,7 @@ match.
 - **[Jellyfin](https://jellyfin.org/)** — film and TV streaming, with NVIDIA hardware transcoding
 - **[Navidrome](https://www.navidrome.org/)** — music streaming
 - **[AudioMuse-AI](https://github.com/NeptuneHub/AudioMuse-AI)** — sonic analysis and playlist generation for the Navidrome library; its Navidrome plugin drives Instant Mix, artist radio and similar artists
+- **[NaviSpot](https://github.com/betsha1830/navispot)** — copies Spotify playlists and liked songs into Navidrome, matching tracks against the library
 - **[Audiobookshelf](https://www.audiobookshelf.org/)** — audiobooks and podcasts
 - **[OpenReader](https://github.com/richardr1126/openreader)** — ebook reader with GPU text-to-speech
 - **[Tdarr](https://tdarr.io/)** — automated library transcoding
@@ -299,7 +300,8 @@ just as well; step 2 is what keeps the repo self-describing.
 
 The container name, the `nas-setup.service` label, `pull`, `state`, the restart policy,
 the `PUID`/`PGID`/`TZ` block, the `/etc/localtime` mount and the strict network
-comparison are all supplied by the engine — a definition should not restate them.
+comparison are all supplied by the engine — a definition should not restate them, and
+the `env`, `volumes` and `labels` it does set add to the engine's rather than replacing them.
 `services/linkding/service.yml` is the template to copy.
 
 A definition may also set two keys the engine consumes itself:
@@ -307,8 +309,8 @@ A definition may also set two keys the engine consumes itself:
 - `network:` — a private Docker network to create (`name`, optional `ipam_config`).
 - `hook: true` — run `services/<name>/hook.yml` before the containers, so it can set
   facts they interpolate. Only `jellyfin` (sysctl), `lidarr` and `nextcloud` (cron),
-  `navidrome` (AudioMuse-AI plugin) and `qbittorrent` (VPN config, subnet lookup) need
-  one currently.
+  `navidrome` (AudioMuse-AI plugin), `navispot` (image build) and `qbittorrent` (VPN
+  config, subnet lookup) need one currently.
 
 Directory names use hyphens, never underscores, since the flag is derived as
 `enable_container_<name with hyphens replaced by underscores>` and has to map back
@@ -324,7 +326,7 @@ documents in Paperless, or the photos in Immich.
 | Network | Contents |
 |---|---|
 | `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr. Flat internally — the arrs drive qbittorrent, prowlarr drives flaresolverr, jellyseerr drives jellyfin and the arrs. |
-| `app_network` | Low-stakes services that talk to nothing but the proxy: audiobookshelf, dashdot, grocy, linkding, navidrome, tdarr |
+| `app_network` | Low-stakes services that talk to nothing but the proxy: audiobookshelf, dashdot, grocy, linkding, navidrome, navispot, tdarr |
 | `<service>_network` | One per service worth walling off. Sole network for vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja and homarr; a back-end network for adguard, gramps, tandoor, openreader, wallabag and wireguard, whose web container also sits on `app_network`. audiomuse-ai has one for its database; its web and worker containers also sit on `app_network`, where they reach Navidrome. |
 
 `app_network` and `media_network` are the shared zones, identified as the networks no
@@ -349,11 +351,16 @@ it only serves links.
 
 ### Image updates
 
-Watchtower updates everything, with no exclusions. Datastores are held to a release
+Watchtower updates everything except NaviSpot (below). Datastores are held to a release
 line by their tag (`mariadb:12.3`, `mysql:8.4`, `redis:8-alpine`) rather than by an
 exclusion label, so patches flow but a major upgrade — which for these means an on-disk
 format change the container cannot perform unattended — never arrives unasked. Moving
 up a line is a deliberate edit to `group_vars/all/vars.yml`.
+
+NaviSpot publishes no image, so its hook builds one on the host from upstream's source,
+and with no registry to check that image against, Watchtower is told to leave it alone.
+A run with `-e container_pull=always` takes its place: it checks out upstream's latest
+commit and rebuilds.
 
 ## Development
 
