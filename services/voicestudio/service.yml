@@ -1,0 +1,27 @@
+---
+# Every API request through the proxy needs the API key; only loopback goes without.
+# The web UI asks for it and trades it for an eight-hour session. Leave
+# FORWARDED_ALLOW_IPS unset whatever upstream's docs say: the backend reads
+# X-Forwarded-Proto itself, and trusting the proxy's headers would let a forged
+# X-Real-IP or X-Forwarded-For pass a client off as loopback.
+network:
+  name: voicestudio_network
+
+containers:
+  - proxied: true
+    # :stable moves only on a release; :latest is upstream's rolling build of main.
+    # No GPU: its PyTorch is a CUDA 12.8 build, which carries no Pascal (sm_61)
+    # kernels, so the P2000 cannot run it and the backend falls back to CPU anyway.
+    image: ghcr.io/debpalash/voicestudio:stable
+    networks:
+      - name: voicestudio_network
+    env:
+      OMNIVOICE_API_KEY: "{{ voicestudio_api_key }}"
+      # Unset, the database and voices land in ~/.omnivoice, outside the volume.
+      OMNIVOICE_DATA_DIR: /app/omnivoice_data
+    volumes:
+      - "{{ docker_dir }}/voicestudio:/app/omnivoice_data"
+      # Seeds the key the saved Hugging Face token and LLM keys are encrypted under.
+      # The image's copy is empty, so it falls back to the hostname -- new on every
+      # recreate, after which they no longer decrypt.
+      - /etc/machine-id:/etc/machine-id:ro

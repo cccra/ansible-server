@@ -19,6 +19,7 @@ match.
 - **[NaviSpot](https://github.com/betsha1830/navispot)** — copies Spotify playlists and liked songs into Navidrome, matching tracks against the library
 - **[Audiobookshelf](https://www.audiobookshelf.org/)** — audiobooks and podcasts
 - **[OpenReader](https://github.com/richardr1126/openreader)** — ebook reader with GPU text-to-speech
+- **[VoiceStudio](https://voicestudio.sh/)** — voice cloning and design, text-to-speech, video dubbing and transcription
 - **[Tdarr](https://tdarr.io/)** — automated library transcoding
 - **[Jellyseerr](https://github.com/seerr-team/seerr)** — media requests
 - **[Wizarr](https://github.com/wizarrrr/wizarr)** — Jellyfin invitations and onboarding
@@ -327,7 +328,7 @@ documents in Paperless, or the photos in Immich.
 |---|---|
 | `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr. Flat internally — the arrs drive qbittorrent, prowlarr drives flaresolverr, jellyseerr drives jellyfin and the arrs. |
 | `app_network` | Low-stakes services that talk to nothing but the proxy: audiobookshelf, dashdot, grocy, linkding, navidrome, navispot, tdarr |
-| `<service>_network` | One per service worth walling off. Sole network for vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja and homarr; a back-end network for adguard, gramps, tandoor, openreader, wallabag and wireguard, whose web container also sits on `app_network`. audiomuse-ai has one for its database; its web and worker containers also sit on `app_network`, where they reach Navidrome. |
+| `<service>_network` | One per service worth walling off. Sole network for vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja, homarr and voicestudio; a back-end network for adguard, gramps, tandoor, openreader, wallabag and wireguard, whose web container also sits on `app_network`. audiomuse-ai has one for its database; its web and worker containers also sit on `app_network`, where they reach Navidrome. |
 
 `app_network` and `media_network` are the shared zones, identified as the networks no
 service claims with a `network:` key. Only `app_network` has a pinned subnet, because
