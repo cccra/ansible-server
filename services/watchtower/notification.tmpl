@@ -1,0 +1,52 @@
+{{- /*
+One mail per run, sent only when the run changed or broke something: what was
+updated or restarted, what failed, what could not be checked, and any errors it
+logged. A quiet run renders nothing, and Watchtower sends nothing for an empty
+message -- which also silences the info lines it logs outside a run, such as the
+cleanup of the old instance after a self-update.
+*/ -}}
+{{- $errors := false -}}
+{{- range .Entries -}}
+  {{- if eq .Level "error" "fatal" "panic" -}}{{- $errors = true -}}{{- end -}}
+{{- end -}}
+{{- $sep := "" -}}
+{{- with .Report -}}
+  {{- if or .Updated .Failed $errors -}}
+    {{- with .Updated -}}
+      {{- $sep -}}Updated:
+      {{- range . }}
+- {{ .Name }} ({{ .ImageName }}): {{ .CurrentImageID.ShortID }} to {{ .LatestImageID.ShortID }}
+      {{- end -}}
+      {{- $sep = "\n\n" -}}
+    {{- end -}}
+    {{- with .Restarted -}}
+      {{- $sep -}}Restarted:
+      {{- range . }}
+- {{ .Name }} ({{ .ImageName }})
+      {{- end -}}
+      {{- $sep = "\n\n" -}}
+    {{- end -}}
+    {{- with .Failed -}}
+      {{- $sep -}}Failed:
+      {{- range . }}
+- {{ .Name }} ({{ .ImageName }}): {{ .Error }}
+      {{- end -}}
+      {{- $sep = "\n\n" -}}
+    {{- end -}}
+    {{- with .Skipped -}}
+      {{- $sep -}}Could not check:
+      {{- range . }}
+- {{ .Name }} ({{ .ImageName }}): {{ .Error }}
+      {{- end -}}
+      {{- $sep = "\n\n" -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if $errors -}}
+  {{- $sep -}}Errors:
+  {{- range .Entries -}}
+    {{- if eq .Level "error" "fatal" "panic" }}
+- {{ .Message }}{{ with index .Data "error" }}: {{ . }}{{ end }}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}

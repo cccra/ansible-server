@@ -358,6 +358,12 @@ exclusion label, so patches flow but a major upgrade — which for these means a
 format change the container cannot perform unattended — never arrives unasked. Moving
 up a line is a deliberate edit to `group_vars/all/vars.yml`.
 
+It runs once a day (`watchtower_schedule`) and sends at most one mail per run, only
+when the run updated something, failed to, or hit an error. The mail lists what was
+updated, restarted or failed, the containers it could not check, and the errors.
+Watchtower starting up sends nothing. The format is
+`services/watchtower/notification.tmpl`.
+
 NaviSpot publishes no image, so its hook builds one on the host from upstream's source,
 and with no registry to check that image against, Watchtower is told to leave it alone.
 A run with `-e container_pull=always` takes its place: it checks out upstream's latest
