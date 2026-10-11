@@ -54,7 +54,9 @@ EXCLUDES=(
 )
 rsync -a --delete --delete-excluded "${EXCLUDES[@]}" "${DOCKER_DIR}/" "${DEST}/" || fail "rsync exited $?"
 
-log "running snapraid-runner"
-{{ snapraid_runner_command }} || fail "snapraid-runner exited $?"
+log "running snapraid-runner $*"
+# Arguments go to snapraid-runner: --ignore-deletethreshold pushes through a mass
+# delete you meant, with the containers held down as usual.
+{{ snapraid_runner_command }} "$@" || fail "snapraid-runner exited $?"
 
 log "=== finished OK"

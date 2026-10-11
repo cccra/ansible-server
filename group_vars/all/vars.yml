@@ -301,7 +301,8 @@ snapraid_runner_cron_jobs:
     hour: "3"
 
 # rsync patterns, anchored at {{ docker_dir }}, left out of the weekly copy to the array.
-# Regenerable logs, temp files and caches only; metadata and the Jellyfin cache are kept.
+# Regenerable logs, temp files and caches; metadata and the Jellyfin cache are kept.
+# Immich's database is the one exception, below.
 snapraid_backup_excludes:
   - /sonarr/logs/
   - /sonarr/logs.db*
@@ -330,6 +331,10 @@ snapraid_backup_excludes:
   - /gramps/tmp/
   - /tandoor/staticfiles/
   - /immich/config/machine-learning/
+  # Immich's Postgres empties table files in place, and SnapRAID's sync refuses a
+  # file that shrank to zero. Immich dumps the database daily to /photos/backups,
+  # on the array, instead; a restore starts from those.
+  - /immich/db/
   - /voicestudio/huggingface/
   - /qbittorrent/config/qBittorrent/config/ipc-socket
 
