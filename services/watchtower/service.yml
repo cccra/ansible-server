@@ -10,8 +10,15 @@ containers:
       WATCHTOWER_CLEANUP: "true"
       WATCHTOWER_INCLUDE_STOPPED: "false"
       WATCHTOWER_NOTIFICATIONS: shoutrrr
+      # Not error: at that level a run that failed nothing is never reported at all.
+      # The template already leaves out everything below error.
       WATCHTOWER_NOTIFICATIONS_LEVEL: info
       WATCHTOWER_NOTIFICATION_REPORT: "true"
+      # Every start would otherwise mail one of its own: each self-update, reboot and
+      # weekly backup.
+      WATCHTOWER_NO_STARTUP_MESSAGE: "true"
+      WATCHTOWER_NOTIFICATION_TEMPLATE: >-
+        {{ lookup('file', playbook_dir ~ '/services/watchtower/notification.tmpl') }}
       WATCHTOWER_NOTIFICATION_URL: >-
         smtp://{{ email_login | urlencode | regex_replace('/', '%2F') }}:{{ email_password | urlencode | regex_replace('/', '%2F') }}@{{ email_smtp_host }}:{{ email_smtp_port_startls }}/?from={{ email | urlencode }}&to={{ email | urlencode }}&auth=Plain&useStartTLS=yes
     volumes:

@@ -19,9 +19,11 @@ match.
 - **[NaviSpot](https://github.com/betsha1830/navispot)** — copies Spotify playlists and liked songs into Navidrome, matching tracks against the library
 - **[Audiobookshelf](https://www.audiobookshelf.org/)** — audiobooks and podcasts
 - **[OpenReader](https://github.com/richardr1126/openreader)** — ebook reader with GPU text-to-speech
+- **[VoiceStudio](https://voicestudio.sh/)** — voice cloning and design, text-to-speech, video dubbing and transcription
 - **[Tdarr](https://tdarr.io/)** — automated library transcoding
 - **[Jellyseerr](https://github.com/seerr-team/seerr)** — media requests
 - **[Wizarr](https://github.com/wizarrrr/wizarr)** — Jellyfin invitations and onboarding
+- **[Tracearr](https://github.com/connorgallopo/Tracearr)** — Jellyfin stream monitoring: watch history, playback analytics and account-sharing alerts
 
 ### Acquisition
 
@@ -325,9 +327,9 @@ documents in Paperless, or the photos in Immich.
 
 | Network | Contents |
 |---|---|
-| `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr. Flat internally — the arrs drive qbittorrent, prowlarr drives flaresolverr, jellyseerr drives jellyfin and the arrs. |
+| `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr, tracearr. Flat internally — the arrs drive qbittorrent, prowlarr drives flaresolverr, jellyseerr drives jellyfin and the arrs, tracearr watches jellyfin. |
 | `app_network` | Low-stakes services that talk to nothing but the proxy: audiobookshelf, dashdot, grocy, linkding, navidrome, navispot, tdarr |
-| `<service>_network` | One per service worth walling off. Sole network for vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja and homarr; a back-end network for adguard, gramps, tandoor, openreader, wallabag and wireguard, whose web container also sits on `app_network`. audiomuse-ai has one for its database; its web and worker containers also sit on `app_network`, where they reach Navidrome. |
+| `<service>_network` | One per service worth walling off. Sole network for vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja, homarr and voicestudio; a back-end network for adguard, gramps, tandoor, openreader, wallabag and wireguard, whose web container also sits on `app_network`. audiomuse-ai has one for its database; its web and worker containers also sit on `app_network`, where they reach Navidrome. |
 
 `app_network` and `media_network` are the shared zones, identified as the networks no
 service claims with a `network:` key. Only `app_network` has a pinned subnet, because
@@ -356,6 +358,12 @@ line by their tag (`mariadb:12.3`, `mysql:8.4`, `redis:8-alpine`) rather than by
 exclusion label, so patches flow but a major upgrade — which for these means an on-disk
 format change the container cannot perform unattended — never arrives unasked. Moving
 up a line is a deliberate edit to `group_vars/all/vars.yml`.
+
+It runs once a day (`watchtower_schedule`) and sends at most one mail per run, only
+when the run updated something, failed to, or hit an error. The mail lists what was
+updated, restarted or failed, the containers it could not check, and the errors.
+Watchtower starting up sends nothing. The format is
+`services/watchtower/notification.tmpl`.
 
 NaviSpot publishes no image, so its hook builds one on the host from upstream's source,
 and with no registry to check that image against, Watchtower is told to leave it alone.
