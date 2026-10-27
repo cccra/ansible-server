@@ -147,6 +147,7 @@ enable_container_audiomuse_ai: false
 enable_container_navispot: false
 enable_container_audiobookshelf: false
 enable_container_jellyseerr: false
+enable_container_tracearr: false
 enable_container_immich: false
 enable_container_qbittorrent: false
 enable_container_sonarr: false
@@ -302,7 +303,7 @@ snapraid_runner_cron_jobs:
 
 # rsync patterns, anchored at {{ docker_dir }}, left out of the weekly copy to the array.
 # Regenerable logs, temp files and caches; metadata and the Jellyfin cache are kept.
-# Immich's database is the one exception, below.
+# Immich's and Tracearr's databases are the exceptions, below.
 snapraid_backup_excludes:
   - /sonarr/logs/
   - /sonarr/logs.db*
@@ -326,6 +327,7 @@ snapraid_backup_excludes:
   - /adguard/work/data/querylog.json*
   - /voicestudio/omnivoice.log*
   - /navidrome/cache/
+  - /tracearr/data/image-cache/
   - /gramps/cache/
   - /gramps/thumb-cache/
   - /gramps/tmp/
@@ -335,6 +337,10 @@ snapraid_backup_excludes:
   # file that shrank to zero. Immich dumps the database daily to /photos/backups,
   # on the array, instead; a restore starts from those.
   - /immich/db/
+  # Tracearr's TimescaleDB does the same, and drops whole chunk files besides, which
+  # count against the delete threshold. Its own backups, once scheduled in its
+  # settings (they ship off), land in /tracearr/backup/, which is copied.
+  - /tracearr/postgres/
   - /voicestudio/huggingface/
   - /qbittorrent/config/qBittorrent/config/ipc-socket
 

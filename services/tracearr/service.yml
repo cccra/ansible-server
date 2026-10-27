@@ -1,0 +1,29 @@
+---
+# The all-in-one image -- TimescaleDB, Redis and Tracearr under supervisord -- on
+# upstream's prerelease line. It generates its secrets on first start and keeps them in
+# /data/tracearr; the database listens on the container's loopback only.
+containers:
+  - proxied: true
+    image: ghcr.io/connorgallopo/tracearr:supervised-next
+    # Where it reaches Jellyfin.
+    networks:
+      - name: media_network
+    # supervisord gives Postgres 30s to stop, after the app and Redis; Docker's default
+    # 10s would kill it mid-shutdown on every update and weekly backup.
+    stop_timeout: 60
+    # Upstream's sizes: TimescaleDB wants the shared memory, and a file per chunk.
+    shm_size: 512M
+    ulimits:
+      - nofile:65536:65536
+    env:
+      # One hop: the client is the address the proxy appended to X-Forwarded-For. It
+      # keys the login and API rate limits, which would otherwise see a single client.
+      TRUST_PROXY: "true"
+      # Postgres is tuned for this rather than for all of the host's memory: what
+      # upstream's 3g container limit works out to, without the limit's OOM kill.
+      PG_MAX_MEMORY: 2GB
+    volumes:
+      - "{{ docker_dir }}/tracearr/postgres:/data/postgres"
+      - "{{ docker_dir }}/tracearr/redis:/data/redis"
+      - "{{ docker_dir }}/tracearr/data:/data/tracearr"
+      - "{{ docker_dir }}/tracearr/backup:/data/backup"

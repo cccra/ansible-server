@@ -23,6 +23,7 @@ match.
 - **[Tdarr](https://tdarr.io/)** — automated library transcoding
 - **[Jellyseerr](https://github.com/seerr-team/seerr)** — media requests
 - **[Wizarr](https://github.com/wizarrrr/wizarr)** — Jellyfin invitations and onboarding
+- **[Tracearr](https://github.com/connorgallopo/Tracearr)** — Jellyfin stream monitoring: watch history, playback analytics and account-sharing alerts
 
 ### Acquisition
 
@@ -326,7 +327,7 @@ documents in Paperless, or the photos in Immich.
 
 | Network | Contents |
 |---|---|
-| `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr. Flat internally — the arrs drive qbittorrent, prowlarr drives flaresolverr, jellyseerr drives jellyfin and the arrs. |
+| `media_network` | The arr/download/streaming mesh: qbittorrent, sonarr, radarr, lidarr, lazylibrarian, prowlarr, flaresolverr, unpackerr, bazarr, jellyfin, jellyseerr, wizarr, tracearr. Flat internally — the arrs drive qbittorrent, prowlarr drives flaresolverr, jellyseerr drives jellyfin and the arrs, tracearr watches jellyfin. |
 | `app_network` | Low-stakes services that talk to nothing but the proxy: audiobookshelf, dashdot, grocy, linkding, navidrome, navispot, tdarr |
 | `<service>_network` | One per service worth walling off. Sole network for vaultwarden, nextcloud, immich, paperless, gitea, invoiceninja, homarr and voicestudio; a back-end network for adguard, gramps, tandoor, openreader, wallabag and wireguard, whose web container also sits on `app_network`. audiomuse-ai has one for its database; its web and worker containers also sit on `app_network`, where they reach Navidrome. |
 
