@@ -227,6 +227,14 @@ this way. Container ports need their own chain because they bypass `INPUT` entir
 Docker DNATs them through `FORWARD` — so `DOCKER-USER` is the only place they can be
 filtered. Ports bound to `lan_address` are LAN-only regardless, firewall or not.
 
+A service run directly on the host rather than in Docker is filtered by `INPUT`, which
+admits only SSH, so nginx-proxy-manager cannot reach it either. List its ports to open
+them to the LAN and to containers, then proxy it to `lan_address`:
+
+```yaml
+host_lan_ports: [3040]
+```
+
 ## How it's put together
 
 | Path | What it is |
@@ -277,6 +285,8 @@ Flags worth knowing about:
 - `enable_ipv6` is `false`. IPv6 is disabled in the kernel and shut at the firewall;
   `nas-firewall.sh` only filters IPv4, so turning it on leaves the v6 side unfiltered.
 - `docker_wan_ports` lists the published container ports reachable from the internet.
+- `host_lan_ports` lists ports of services run on the host itself, opened to the LAN and
+  to containers.
 
 ### Adding a service
 
