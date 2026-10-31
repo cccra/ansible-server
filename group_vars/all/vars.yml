@@ -192,6 +192,10 @@ security_fail2ban_enabled: false
 # Container ports reachable from the internet; everything else is LAN-only.
 docker_wan_ports: []
 
+# Ports of services run directly on the host, not in Docker. Opened to the LAN and to
+# containers, so nginx-proxy-manager can proxy them; never to the internet.
+host_lan_ports: []
+
 # Set to true to have fail2ban push bans to the Cloudflare firewall. Requires
 # cloudflare_firewall_token (vault).
 enable_cloudflare: false

@@ -10,6 +10,16 @@ iptables -A INPUT -i lo -j ACCEPT
 iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
 iptables -A INPUT -p tcp --dport "${SSH_PORT}" -m conntrack --ctstate NEW -j ACCEPT
+{% if host_lan_ports | default([]) | length > 0 %}
+
+# Services run on the host itself. Containers reach them through their bridge, so
+# nginx-proxy-manager can proxy them by lan_address.
+{% for port in host_lan_ports %}
+iptables -A INPUT -p tcp --dport {{ port }} -s "${LAN}" -m conntrack --ctstate NEW -j ACCEPT
+iptables -A INPUT -p tcp --dport {{ port }} -i docker0 -m conntrack --ctstate NEW -j ACCEPT
+iptables -A INPUT -p tcp --dport {{ port }} -i br-+ -m conntrack --ctstate NEW -j ACCEPT
+{% endfor %}
+{% endif %}
 
 # DOCKER-USER: published container ports bypass INPUT entirely (Docker DNATs them
 # through FORWARD), so they can only be filtered here.
