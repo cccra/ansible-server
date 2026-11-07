@@ -1,0 +1,4 @@
+# Read for the Dockerfile beside it, as NaviSpot's is: keeps the checkout's .git out of
+# the build context, since git rewrites its metadata on every fetch and COPY . . would
+# then rebuild an image with nothing new in it.
+.git

@@ -169,6 +169,7 @@ enable_container_voicestudio: false
 enable_container_invoiceninja: false
 enable_container_paperless: false
 enable_container_nextcloud: false
+enable_container_nextcloud_organizer_mcp: false
 enable_container_vaultwarden: false
 enable_container_gramps: false
 enable_container_wireguard: false
@@ -399,6 +400,8 @@ smartd_default_mail_recipients: ["{{ email }}"]
 #   audiomuse_db_password         # audiomuse-ai
 #   navispot_client_id            # navispot; the Spotify app's, from its developer dashboard
 #   navispot_client_secret        # navispot
+#   nextcloud_mcp_app_password    # nextcloud-organizer-mcp; from Nextcloud, Settings > Security, as username
+#   nextcloud_mcp_oauth_password  # nextcloud-organizer-mcp; what its consent page asks for when Claude connects
 #   linkding_admin                # linkding
 #   linkding_admin_password       # linkding
 #   sonarr_api                    # unpackerr

@@ -1,0 +1,47 @@
+---
+# Lets Claude read and change one Nextcloud account's tasks, calendars and notes, as a
+# custom connector: Settings > Connectors > Add custom connector, with the URL
+# https://nextcloud-organizer-mcp.<host>/mcp and no client ID or secret. Claude connects
+# from Anthropic's servers, not from the browser, so the proxy has to answer from the
+# internet: docker_wan_ports [80, 443], and a proxy host for that name.
+#
+# OAuth is the gate. Client registration is open to anyone by design; adding the
+# connector opens a consent page served by this container, which asks for
+# nextcloud_mcp_oauth_password. Every client reaches it from the proxy's address, so
+# the page's limit of 10 wrong passwords per address per 15 minutes is shared by all.
+#
+# Upstream publishes no image, so the hook builds one on the host from its source.
+hook: true
+
+network:
+  name: nextcloud_mcp_network
+
+containers:
+  - proxied: true
+    image: nextcloud-organizer-mcp
+    # No registry holds this image: a pull can only fail, and Watchtower has nothing to
+    # update it from. The hook rebuilds it from the latest source on container_pull=always.
+    pull: never
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+    # Walled off: it holds an app password with the run of the Nextcloud account.
+    networks:
+      - name: nextcloud_mcp_network
+    user: "{{ guid }}:{{ guid }}"
+    # Nextcloud is reached at its public name, over TLS, through the proxy, but without
+    # leaving the host: the name points at the host's bridge address, where Docker
+    # forwards 443 to the proxy, so nothing depends on the router looping it back.
+    etc_hosts: "{{ {'nextcloud.' ~ host: 'host-gateway'} }}"
+    env:
+      NEXTCLOUD_BASE_URL: "https://nextcloud.{{ host }}"
+      NEXTCLOUD_USERNAME: "{{ username }}"
+      NEXTCLOUD_APP_PASSWORD: "{{ nextcloud_mcp_app_password }}"
+      # Has to match the connector's URL exactly, or the OAuth discovery fails.
+      PUBLIC_BASE_URL: "https://nextcloud-organizer-mcp.{{ host }}"
+      MCP_OAUTH_PASSWORD: "{{ nextcloud_mcp_oauth_password }}"
+      MCP_OAUTH_STATE_DIR: /data
+      MCP_HOST: 0.0.0.0
+      # Unset, naive times are read as Europe/Berlin's.
+      MCP_DEFAULT_TIMEZONE: "{{ timezone }}"
+    volumes:
+      - "{{ docker_dir }}/nextcloud-organizer-mcp/oauth-state:/data"

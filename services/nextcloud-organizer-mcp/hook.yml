@@ -1,0 +1,54 @@
+---
+# Builds the image service.yml runs, from upstream's source and the Dockerfile beside
+# this file, the same way NaviSpot's hook does; the reasoning is spelled out there.
+- name: Check out the source
+  ansible.builtin.git:
+    repo: https://github.com/Vando-sketch/nextcloud-organizer-mcp.git
+    dest: "{{ docker_dir }}/nextcloud-organizer-mcp/src"
+    # Upstream's released state; work happens on dev.
+    version: main
+    depth: 1
+    update: "{{ container_pull == 'always' }}"
+  register: nextcloud_mcp_source
+
+- name: Install the Dockerfile and its ignore file
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/services/nextcloud-organizer-mcp/{{ item }}"
+    dest: "{{ docker_dir }}/nextcloud-organizer-mcp/{{ item }}"
+    mode: "0640"
+  loop:
+    - Dockerfile
+    - Dockerfile.dockerignore
+  register: nextcloud_mcp_build_files
+
+- name: Build the image
+  community.docker.docker_image_build:
+    name: nextcloud-organizer-mcp
+    path: "{{ docker_dir }}/nextcloud-organizer-mcp/src"
+    dockerfile: ../Dockerfile
+    labels:
+      nas-setup.service: nextcloud-organizer-mcp
+    pull: "{{ container_pull == 'always' }}"
+    rebuild: >-
+      {{ 'always' if container_pull == 'always' or nextcloud_mcp_source is changed
+         or nextcloud_mcp_build_files is changed else 'never' }}
+  environment:
+    BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+
+- name: Remove superseded builds
+  community.docker.docker_prune:
+    images: true
+    images_filters:
+      dangling: true
+      label: nas-setup.service=nextcloud-organizer-mcp
+
+# The container runs as guid and keeps its OAuth clients and tokens here. Left to
+# Docker, a missing bind source is created owned by root, which that user cannot write.
+- name: Create the OAuth state directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ docker_dir }}/nextcloud-organizer-mcp/oauth-state"
+    state: directory
+    owner: "{{ guid }}"
+    group: "{{ guid }}"
+    mode: "0700"
