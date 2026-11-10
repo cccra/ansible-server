@@ -165,7 +165,6 @@ enable_container_tandoor: false
 enable_container_linkding: false
 enable_container_wallabag: false
 enable_container_openreader: false
-enable_container_voicestudio: false
 enable_container_invoiceninja: false
 enable_container_paperless: false
 enable_container_nextcloud: false
@@ -329,7 +328,6 @@ snapraid_backup_excludes:
   - /grocy/config/log/
   - /nginxproxymanager/data/logs/
   - /adguard/work/data/querylog.json*
-  - /voicestudio/omnivoice.log*
   - /navidrome/cache/
   - /tracearr/data/image-cache/
   - /gramps/cache/
@@ -345,7 +343,6 @@ snapraid_backup_excludes:
   # count against the delete threshold. Its own backups, once scheduled in its
   # settings (they ship off), land in /tracearr/backup/, which is copied.
   - /tracearr/postgres/
-  - /voicestudio/huggingface/
   - /qbittorrent/config/qBittorrent/config/ipc-socket
 
 # Guards against a bad mount or mass delete being committed to parity.
@@ -394,7 +391,6 @@ smartd_default_mail_recipients: ["{{ email }}"]
 #   openreader_auth_secret        # openreader
 #   openreader_s3_access_key      # openreader embedded SeaweedFS
 #   openreader_s3_secret_key      # openreader embedded SeaweedFS
-#   voicestudio_api_key           # voicestudio OMNIVOICE_API_KEY; what the web UI asks for
 #   homarr_key                    # homarr SECRET_ENCRYPTION_KEY
 #   audiomuse_db_password         # audiomuse-ai
 #   navispot_client_id            # navispot; the Spotify app's, from its developer dashboard
